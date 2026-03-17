@@ -1,6 +1,5 @@
 # vtex-snap
 
-> CLI to clone a complete VTEX store catalog to another VTEX store.
 > CLI para clonar el catálogo completo de una tienda VTEX a otra.
 
 [![npm version](https://img.shields.io/npm/v/vtex-snap)](https://www.npmjs.com/package/vtex-snap)
@@ -12,89 +11,79 @@
 
 ---
 
-## What it does / O que faz
+## ¿Qué hace?
 
-`vtex-snap` migrates your entire VTEX catalog from one account to another — interactively, step by step, with progress tracking.
+`vtex-snap` migra todo el catálogo VTEX de una cuenta a otra — de forma interactiva, paso a paso, con seguimiento de progreso.
 
-`vtex-snap` migra todo o catálogo VTEX de uma conta para outra — de forma interativa, etapa por etapa, com rastreamento de progresso.
+**Recursos clonados:**
 
-**Cloned resources / Recursos clonados:**
-
-| # | EN | PT/ES |
-|---|----|----|
-| 1 | Categories | Categorias |
-| 2 | Brands | Marcas |
-| 3 | Trade Policies | Trade Policies |
-| 4 | Specifications | Especificações / Especificaciones |
-| 5 | Products | Produtos / Productos |
-| 6 | SKUs | SKUs |
-| 7 | Images | Imagens / Imágenes |
-| 8 | Spec Values | Valores de Spec |
-| 9 | Prices | Preços / Precios |
-| 10 | Stock | Estoque / Stock |
-| 11 | Collections | Coleções / Colecciones |
+| # | Recurso |
+|---|---------|
+| 1 | Categorías |
+| 2 | Marcas |
+| 3 | Trade Policies |
+| 4 | Especificaciones |
+| 5 | Productos |
+| 6 | SKUs |
+| 7 | Imágenes |
+| 8 | Valores de Spec |
+| 9 | Precios |
+| 10 | Stock |
+| 11 | Colecciones |
 
 ---
 
-## Installation / Instalação / Instalación
+## Instalación
 
 ```bash
 npm install -g vtex-snap
-# or / ou / o
+# o
 pnpm add -g vtex-snap
 ```
 
-**Requirements / Requisitos:** Node.js >= 20
+**Requisitos:** Node.js >= 20
 
 ---
 
-## Usage / Uso
+## Uso
 
-### 1. Configure credentials / Configure as credenciais / Configure las credenciales
+### 1. Configurar credenciales
 
 ```bash
 vtex-snap init
 ```
 
-Prompts for source and target store credentials (account name + app key/token).
-Solicita as credenciais das lojas de origem e destino (account name + app key/token).
 Solicita las credenciales de las tiendas de origen y destino (account name + app key/token).
 
-### 2. Start cloning / Iniciar clonagem / Iniciar clonación
+### 2. Iniciar clonación
 
 ```bash
 vtex-snap start
 ```
 
-Select all steps or pick specific ones. `vtex-snap` will validate connectivity before starting.
-Selecione todas as etapas ou escolha etapas específicas. O `vtex-snap` validará a conectividade antes de iniciar.
 Seleccione todos los pasos o elija pasos específicos. `vtex-snap` validará la conectividad antes de comenzar.
 
 ---
 
-## Contributing / Contribuindo / Contribuyendo
+## Contribuir
 
-This is an open source project — contributions are welcome!
-Este é um projeto open source — contribuições são bem-vindas!
 Este es un proyecto open source — ¡las contribuciones son bienvenidas!
 
-1. Fork the repository
-2. Create your branch: `git checkout -b feat/my-feature`
-3. Commit your changes: `git commit -m 'feat: add my feature'`
-4. Push and open a Pull Request
+1. Fork del repositorio
+2. Crea tu rama: `git checkout -b feat/mi-feature`
+3. Commit: `git commit -m 'feat: agregar mi feature'`
+4. Push y abre un Pull Request
 
-Please read our [contributing guidelines](.github/pull_request_template.md) and check the [open issues](https://github.com/zeluizr/vtex-catalog-cloner/issues).
+Revisa las [issues abiertas](https://github.com/zeluizr/vtex-catalog-cloner/issues) y las [discusiones](https://github.com/zeluizr/vtex-catalog-cloner/discussions).
 
 ---
 
-## Security / Segurança / Seguridad
+## Seguridad
 
-Found a vulnerability? Please report it responsibly — see [SECURITY.md](.github/SECURITY.md).
-Encontrou uma vulnerabilidade? Reporte de forma responsável — veja [SECURITY.md](.github/SECURITY.md).
 ¿Encontraste una vulnerabilidad? Repórtala de forma responsable — ver [SECURITY.md](.github/SECURITY.md).
 
 ---
 
-## License / Licença / Licencia
+## Licencia
 
 MIT © [zeluizr](https://github.com/zeluizr)

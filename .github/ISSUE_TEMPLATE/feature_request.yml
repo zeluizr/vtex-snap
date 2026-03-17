@@ -1,25 +1,25 @@
-name: "Feature Request / Solicitud de Funcionalidad"
-description: "Sugira uma nova funcionalidade para o vtex-snap / Sugiera una nueva funcionalidad para vtex-snap"
+name: Solicitud de Funcionalidad
+description: Sugiere una nueva funcionalidad para vtex-snap
 labels: ["enhancement"]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: "Problema que resolve / Problema que resuelve"
-      description: "Qual problema ou limitação atual esta feature resolveria? / ¿Qué problema o limitación actual resolvería esta funcionalidad?"
+      label: Problema que resuelve
+      description: ¿Qué problema o limitación actual resolvería esta funcionalidad?
     validations:
       required: true
 
   - type: textarea
     id: description
     attributes:
-      label: "Descrição da feature / Descripción de la funcionalidad"
-      description: "Descreva a solução que você gostaria de ver implementada. / Describa la solución que le gustaría ver implementada."
+      label: Descripción de la funcionalidad
+      description: Describa la solución que le gustaría ver implementada.
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: "Alternativas consideradas / Alternativas consideradas"
-      description: "Você já tentou alguma alternativa ou workaround? / ¿Ha intentado alguna alternativa o solución temporal?"
+      label: Alternativas consideradas
+      description: ¿Ha intentado alguna alternativa o solución temporal?
