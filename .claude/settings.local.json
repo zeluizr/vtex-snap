@@ -11,7 +11,8 @@
       "Bash(npm whoami:*)",
       "Bash(chmod:*)",
       "Bash(node:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(gh repo:*)"
     ]
   }
 }

@@ -1,7 +1,15 @@
 {
   "name": "vtex-snap",
-  "version": "1.0.0",
+  "version": "2.3.0",
   "description": "CLI to clone a complete VTEX store catalog to another VTEX store",
+  "homepage": "https://vtexsnap.zeluizr.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zeluizr/vtex-catalog-cloner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zeluizr/vtex-catalog-cloner/issues"
+  },
   "type": "module",
   "bin": {
     "vtex-snap": "./bin/vtex-snap"
