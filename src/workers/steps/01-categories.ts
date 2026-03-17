@@ -2,7 +2,7 @@ import type { IdMap } from '../../lib/id-map.js'
 import type { VtexClient } from '../../lib/vtex-client.js'
 import type { Category, EmitFn } from '../types.js'
 
-function flattenTree(categories: Category[]): Category[] {
+export function flattenTree(categories: Category[]): Category[] {
   const result: Category[] = []
   function walk(nodes: Category[]) {
     for (const node of nodes) {

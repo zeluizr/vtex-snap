@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
-import { runConfig } from './commands/config.js'
 import { runInit } from './commands/init.js'
+import { runStart } from './commands/start.js'
 
 const program = new Command()
 
 program
-  .name('catalog-cloner')
+  .name('vtex-snap')
   .description('Clone a complete VTEX store catalog to another VTEX store')
   .version('1.0.0')
 
 program
-  .command('config')
+  .command('init')
   .description('Configure source and target store credentials')
   .action(async () => {
-    await runConfig()
+    await runInit()
   })
 
 program
-  .command('init')
+  .command('start')
   .description('Start the catalog cloning process')
   .action(async () => {
-    await runInit()
+    await runStart()
   })
 
 program.parse()

@@ -4,7 +4,7 @@ const MAX_TOKENS = 400
 const REFILL_RATE = 400 // per minute
 const MAX_CONCURRENT = 5
 
-class Throttle {
+export class Throttle {
   private tokens: number = MAX_TOKENS
   private lastRefill: number = Date.now()
   private concurrent: number = 0

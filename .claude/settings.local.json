@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm --version)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm test:coverage)",
+      "Bash(pnpm build:*)",
+      "Bash(npm info:*)",
+      "Bash(npm whoami:*)",
+      "Bash(chmod:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

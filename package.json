@@ -1,13 +1,14 @@
 {
-  "name": "catalog-cloner",
+  "name": "vtex-snap",
   "version": "1.0.0",
   "description": "CLI to clone a complete VTEX store catalog to another VTEX store",
   "type": "module",
   "bin": {
-    "catalog-cloner": "./dist/index.js"
+    "vtex-snap": "./bin/vtex-snap"
   },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "engines": {
     "node": ">=20"
@@ -16,7 +17,10 @@
     "build": "tsc && node -e \"const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);\" && chmod +x dist/index.js",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@clack/prompts": "^0.9.0",
@@ -26,6 +30,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.0.0"
+    "@vitest/coverage-v8": "^4.1.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.0"
   }
 }

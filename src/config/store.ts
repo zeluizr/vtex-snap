@@ -18,7 +18,7 @@ export interface CliConfig {
 }
 
 export function getConfigPath(): string {
-  return join(homedir(), '.config', 'catalog-cloner', 'config.json')
+  return join(homedir(), '.config', 'vtex-snap', 'config.json')
 }
 
 export async function loadConfig(): Promise<CliConfig | null> {
@@ -32,7 +32,7 @@ export async function loadConfig(): Promise<CliConfig | null> {
 
 export async function saveConfig(config: CliConfig): Promise<void> {
   const configPath = getConfigPath()
-  const configDir = join(homedir(), '.config', 'catalog-cloner')
+  const configDir = join(homedir(), '.config', 'vtex-snap')
   await mkdir(configDir, { recursive: true })
   await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
