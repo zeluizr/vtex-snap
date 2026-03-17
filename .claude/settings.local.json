@@ -10,7 +10,8 @@
       "Bash(npm info:*)",
       "Bash(npm whoami:*)",
       "Bash(chmod:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git remote:*)"
     ]
   }
 }

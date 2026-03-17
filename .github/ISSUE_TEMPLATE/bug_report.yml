@@ -1,0 +1,60 @@
+name: Bug Report / Reporte de Bug
+description: Reporte um bug no vtex-snap / Reporte un bug en vtex-snap
+labels: ["bug"]
+body:
+  - type: input
+    id: vtex-snap-version
+    attributes:
+      label: "Versão do vtex-snap / Versión de vtex-snap"
+      placeholder: "ex: 1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: "Versão do Node.js / Versión de Node.js"
+      placeholder: "ex: 20.11.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: "Sistema Operacional / Sistema Operativo"
+      placeholder: "ex: macOS 14, Ubuntu 22.04, Windows 11"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Descrição do bug / Descripción del bug"
+      description: "Uma descrição clara e concisa do problema. / Una descripción clara y concisa del problema."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Passos para reproduzir / Pasos para reproducir"
+      placeholder: |
+        1. Execute / Ejecute `vtex-snap ...`
+        2. Selecione / Seleccione ...
+        3. Veja o erro / Vea el error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Comportamento esperado / Comportamiento esperado"
+      description: "O que você esperava que acontecesse? / ¿Qué esperabas que ocurriera?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs / output de erro / Logs / salida de error"
+      render: shell
