@@ -102,38 +102,9 @@ export async function runStart(): Promise<void> {
     selectedSteps = chosen as string[]
   }
 
-  // Range de IDs de produto (sempre necessário porque o fluxo todo gira em torno deles)
-  const fromInput = await p.text({
-    message: 'ID inicial de produto a varrer:',
-    initialValue: '1',
-    validate: (v) => (/^\d+$/.test(v) && parseInt(v, 10) > 0 ? undefined : 'Informe um inteiro positivo'),
-  })
-  if (p.isCancel(fromInput)) {
-    p.cancel('Operação cancelada.')
-    process.exit(0)
-  }
-
-  const toInput = await p.text({
-    message: 'ID final de produto a varrer:',
-    initialValue: '1000',
-    validate: (v) => (/^\d+$/.test(v) && parseInt(v, 10) > 0 ? undefined : 'Informe um inteiro positivo'),
-  })
-  if (p.isCancel(toInput)) {
-    p.cancel('Operação cancelada.')
-    process.exit(0)
-  }
-
-  const productIdFrom = parseInt(fromInput as string, 10)
-  const productIdTo = parseInt(toInput as string, 10)
-
-  if (productIdTo < productIdFrom) {
-    p.cancel('ID final deve ser ≥ ID inicial.')
-    process.exit(1)
-  }
-
   const stepCount = selectedSteps.length
   const confirmed = await p.confirm({
-    message: `Clonar de ${pc.cyan(config.source.accountName)} → ${pc.cyan(config.target.accountName)} (${stepCount} etapas, IDs ${productIdFrom}..${productIdTo}). Continuar?`,
+    message: `Clonar de ${pc.cyan(config.source.accountName)} → ${pc.cyan(config.target.accountName)} (${stepCount} etapas — descoberta automática via SKU IDs). Continuar?`,
     initialValue: true,
   })
 
@@ -153,10 +124,7 @@ export async function runStart(): Promise<void> {
   }
 
   try {
-    await runClone(config.source, config.target, selectedSteps, emit, {
-      productIdFrom,
-      productIdTo,
-    })
+    await runClone(config.source, config.target, selectedSteps, emit)
     const elapsed = Math.round((Date.now() - startTime) / 1000)
     const mins = Math.floor(elapsed / 60)
     const secs = elapsed % 60

@@ -1,5 +1,5 @@
 import type { VtexClient } from '../../lib/vtex-client.js'
-import type { EmitFn } from '../types.js'
+import type { DiscoveredCatalog, EmitFn } from '../types.js'
 import type { ProductSkuMapping } from './01-products.js'
 
 export interface SkuMapping {
@@ -9,30 +9,18 @@ export interface SkuMapping {
 }
 
 export async function cloneSkus(
-  source: VtexClient,
   target: VtexClient,
   emit: EmitFn,
+  catalog: DiscoveredCatalog,
   productMappings: ProductSkuMapping[],
 ): Promise<SkuMapping[]> {
   const step = 'skus'
-  console.log('[step:skus] starting')
-
-  // Discover SKUs per source product
-  const skusByProduct: Array<{
-    productId: number
-    skus: Awaited<ReturnType<VtexClient['getSkusByProductId']>>
-  }> = []
-  let totalSkus = 0
-  for (const { oldProductId } of productMappings) {
-    try {
-      const skus = await source.getSkusByProductId(oldProductId)
-      skusByProduct.push({ productId: oldProductId, skus })
-      totalSkus += skus.length
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.warn(`[step:skus] could not fetch SKUs for product ${oldProductId}: ${message}`)
-    }
-  }
+  const productMap = new Map(productMappings.map((m) => [m.oldProductId, m.newProductId]))
+  const totalSkus = productMappings.reduce(
+    (sum, m) => sum + (catalog.get(m.oldProductId)?.skus.length ?? 0),
+    0,
+  )
+  console.log(`[step:skus] cloning ${totalSkus} SKUs`)
 
   emit({ type: 'step:start', step, total: totalSkus })
 
@@ -41,42 +29,46 @@ export async function cloneSkus(
   let current = 0
   const mappings: SkuMapping[] = []
 
-  for (const { productId, skus } of skusByProduct) {
-    for (const sku of skus) {
+  for (const { oldProductId } of productMappings) {
+    const newProductId = productMap.get(oldProductId)
+    const entry = catalog.get(oldProductId)
+    if (!entry || newProductId === undefined) continue
+
+    for (const { oldSkuId, context } of entry.skus) {
       current++
       try {
         const newSku = await target.createSku({
-          Id: sku.Id,
-          ProductId: productId,
+          Id: context.Id,
+          ProductId: newProductId,
           IsActive: false,
-          Name: sku.Name,
-          RefId: sku.RefId ?? '',
-          PackagedHeight: sku.PackagedHeight ?? 0,
-          PackagedLength: sku.PackagedLength ?? 0,
-          PackagedWidth: sku.PackagedWidth ?? 0,
-          PackagedWeightKg: sku.PackagedWeightKg ?? 0,
-          Height: sku.Height,
-          Length: sku.Length,
-          Width: sku.Width,
-          WeightKg: sku.WeightKg,
-          CubicWeight: sku.CubicWeight ?? 0,
-          IsKit: sku.IsKit ?? false,
-          RewardValue: sku.RewardValue,
-          EstimatedDateArrival: sku.EstimatedDateArrival,
-          ManufacturerCode: sku.ManufacturerCode ?? '',
-          CommercialConditionId: sku.CommercialConditionId ?? 1,
-          MeasurementUnit: sku.MeasurementUnit ?? 'un',
-          UnitMultiplier: sku.UnitMultiplier ?? 1,
-          ModalType: sku.ModalType ?? '',
-          KitItensSellApart: sku.KitItensSellApart ?? false,
-          Videos: sku.Videos ?? [],
+          Name: context.SkuName,
+          RefId: context.AlternateIds?.RefId ?? '',
+          PackagedHeight: context.Dimension?.height ?? 0,
+          PackagedLength: context.Dimension?.length ?? 0,
+          PackagedWidth: context.Dimension?.width ?? 0,
+          PackagedWeightKg: context.Dimension?.weight ?? 0,
+          Height: context.RealDimension?.realHeight ?? null,
+          Length: context.RealDimension?.realLength ?? null,
+          Width: context.RealDimension?.realWidth ?? null,
+          WeightKg: context.RealDimension?.realWeight ?? null,
+          CubicWeight: context.Dimension?.cubicweight ?? 0,
+          IsKit: context.IsKit ?? false,
+          RewardValue: context.RewardValue,
+          EstimatedDateArrival: context.EstimatedDateArrival,
+          ManufacturerCode: context.ManufacturerCode ?? '',
+          CommercialConditionId: context.CommercialConditionId ?? 1,
+          MeasurementUnit: context.MeasurementUnit ?? 'un',
+          UnitMultiplier: context.UnitMultiplier ?? 1,
+          ModalType: context.ModalType ?? '',
+          KitItensSellApart: false,
+          Videos: context.Videos ?? [],
           ActivateIfPossible: false,
         })
 
         created++
-        mappings.push({ oldSkuId: sku.Id, newSkuId: newSku.Id, productId })
+        mappings.push({ oldSkuId, newSkuId: newSku.Id, productId: newProductId })
 
-        if (sku.IsActive) {
+        if (context.IsActive) {
           try {
             await target.activateSku(newSku.Id)
           } catch (error) {
@@ -90,16 +82,16 @@ export async function cloneSkus(
           step,
           current,
           total: totalSkus,
-          detail: `SKU ${sku.Id} → ${newSku.Id}`,
+          detail: `SKU ${oldSkuId} → ${newSku.Id}`,
         })
       } catch (error) {
         errors++
         const message = error instanceof Error ? error.message : String(error)
-        console.error(`[step:skus] error cloning SKU ${sku.Id}: ${message}`)
+        console.error(`[step:skus] error cloning SKU ${oldSkuId}: ${message}`)
         emit({
           type: 'step:error',
           step,
-          message: `Failed to clone SKU ${sku.Id}`,
+          message: `Failed to clone SKU ${oldSkuId}`,
           detail: message,
         })
       }

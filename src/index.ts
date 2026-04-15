@@ -8,7 +8,7 @@ const program = new Command()
 program
   .name('vtex-snap')
   .description('Clone a complete VTEX store catalog to another VTEX store')
-  .version('2.5.0')
+  .version('2.6.0')
 
 program
   .command('init')

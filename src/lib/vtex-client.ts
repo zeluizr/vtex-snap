@@ -133,15 +133,26 @@ export class VtexClient {
 
   // SKUs
 
-  async getSkusByProductId(productId: number): Promise<Sku[]> {
-    return this.request<Sku[]>(
-      this.catalogSystemUrl(`/pvt/sku/stockkeepingunitByProductId/${productId}`),
-    )
-  }
-
   async getSkuContext(skuId: number): Promise<SkuContext> {
     return this.request<SkuContext>(
       this.catalogSystemUrl(`/pvt/sku/stockkeepingunitbyid/${skuId}`),
+    )
+  }
+
+  async getSkuContextSafe(skuId: number): Promise<SkuContext | null> {
+    try {
+      return await this.getSkuContext(skuId)
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('HTTP 404')) {
+        return null
+      }
+      throw error
+    }
+  }
+
+  async getSkuIds(page: number, pageSize: number): Promise<number[]> {
+    return this.request<number[]>(
+      this.catalogSystemUrl(`/pvt/sku/stockkeepingunitids?page=${page}&pagesize=${pageSize}`),
     )
   }
 

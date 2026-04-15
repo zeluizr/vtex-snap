@@ -138,7 +138,7 @@ export interface CreateSku {
 }
 
 // Subset of fields returned by GET /api/catalog_system/pvt/sku/stockkeepingunitbyid/{skuId}
-// We only consume specifications.
+// Consumed by discovery, products, skus and spec-values steps.
 export interface SkuContextSpec {
   FieldId: number
   FieldName: string
@@ -148,12 +148,63 @@ export interface SkuContextSpec {
   FieldGroupName?: string
 }
 
+export interface SkuContextDimension {
+  cubicweight: number
+  height: number
+  length: number
+  weight: number
+  width: number
+}
+
+export interface SkuContextRealDimension {
+  realCubicWeight: number
+  realHeight: number
+  realLength: number
+  realWeight: number
+  realWidth: number
+}
+
+export interface SkuContextAlternateIds {
+  Ean?: string
+  RefId?: string
+}
+
 export interface SkuContext {
   Id: number
   ProductId: number
+  SkuName: string
+  IsActive: boolean
+  IsKit: boolean
+  BrandName: string
+  Dimension: SkuContextDimension
+  RealDimension: SkuContextRealDimension
+  ManufacturerCode: string
+  CommercialConditionId: number
+  MeasurementUnit: string
+  UnitMultiplier: number
+  ModalType: string | null
+  RewardValue: number | null
+  EstimatedDateArrival: string | null
+  AlternateIds: SkuContextAlternateIds
+  Videos: string[]
   ProductSpecifications: SkuContextSpec[]
   SkuSpecifications: SkuContextSpec[]
 }
+
+// Discovery output: catalog enumerated by paginating SKU IDs and fetching each SKU's context.
+export interface DiscoveredSku {
+  oldSkuId: number
+  context: SkuContext
+}
+
+export interface DiscoveredProduct {
+  oldProductId: number
+  brandName: string
+  productSpecs: SkuContextSpec[]
+  skus: DiscoveredSku[]
+}
+
+export type DiscoveredCatalog = Map<number, DiscoveredProduct>
 
 // PUT /api/catalog/pvt/product/{productId}/specificationvalue
 // Auto-creates group + spec + values when they do not exist on destination.

@@ -1,12 +1,12 @@
 import { VtexClient } from '../lib/vtex-client.js'
+import { discoverCatalog } from './discovery.js'
 import { cloneProducts } from './steps/01-products.js'
 import { cloneSkus } from './steps/02-skus.js'
 import { cloneSpecValues } from './steps/03-spec-values.js'
 import type { EmitFn, VtexCredentials } from './types.js'
 
 export interface RunCloneOptions {
-  productIdFrom?: number
-  productIdTo?: number
+  // reserved for future limits/filters
 }
 
 export async function runClone(
@@ -14,26 +14,27 @@ export async function runClone(
   target: VtexCredentials,
   selectedSteps: string[],
   emit: EmitFn,
-  options: RunCloneOptions = {},
+  _options: RunCloneOptions = {},
 ): Promise<void> {
   const sourceClient = new VtexClient(source)
   const targetClient = new VtexClient(target)
 
   const should = (step: string) => selectedSteps.includes(step)
-  const productIdFrom = options.productIdFrom ?? 1
-  const productIdTo = options.productIdTo ?? 0
 
   try {
+    // Discovery is mandatory because every step depends on the catalog snapshot.
+    const catalog = await discoverCatalog(sourceClient, emit)
+
     const productMappings = should('products')
-      ? await cloneProducts(sourceClient, targetClient, emit, productIdFrom, productIdTo)
+      ? await cloneProducts(sourceClient, targetClient, emit, catalog)
       : []
 
     const skuMappings = should('skus')
-      ? await cloneSkus(sourceClient, targetClient, emit, productMappings)
+      ? await cloneSkus(targetClient, emit, catalog, productMappings)
       : []
 
     if (should('spec-values'))
-      await cloneSpecValues(sourceClient, targetClient, emit, productMappings, skuMappings)
+      await cloneSpecValues(targetClient, emit, catalog, productMappings, skuMappings)
 
     emit({
       type: 'complete',

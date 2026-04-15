@@ -1,5 +1,5 @@
 import type { VtexClient } from '../../lib/vtex-client.js'
-import type { EmitFn } from '../types.js'
+import type { DiscoveredCatalog, EmitFn } from '../types.js'
 
 export interface ProductSkuMapping {
   oldProductId: number
@@ -10,12 +10,11 @@ export async function cloneProducts(
   source: VtexClient,
   target: VtexClient,
   emit: EmitFn,
-  productIdFrom: number,
-  productIdTo: number,
+  catalog: DiscoveredCatalog,
 ): Promise<ProductSkuMapping[]> {
   const step = 'products'
-  const total = productIdTo - productIdFrom + 1
-  console.log(`[step:products] scanning product IDs ${productIdFrom}..${productIdTo}`)
+  const total = catalog.size
+  console.log(`[step:products] cloning ${total} products`)
 
   emit({ type: 'step:start', step, total })
 
@@ -24,10 +23,8 @@ export async function cloneProducts(
   let scanned = 0
   const mappings: ProductSkuMapping[] = []
 
-  // Cached resolutions for category path and brand name (many products share these).
+  // Many products share the same category. Cache the resolved CategoryPath in memory.
   const categoryPathCache = new Map<number, string>()
-  const brandNameCache = new Map<number, string>()
-
   const resolveCategoryPath = async (categoryId: number): Promise<string> => {
     const cached = categoryPathCache.get(categoryId)
     if (cached !== undefined) return cached
@@ -37,39 +34,28 @@ export async function cloneProducts(
     return path
   }
 
-  const resolveBrandName = async (brandId: number): Promise<string> => {
-    const cached = brandNameCache.get(brandId)
-    if (cached !== undefined) return cached
-    const brand = await source.getBrand(brandId)
-    brandNameCache.set(brandId, brand.name)
-    return brand.name
-  }
-
-  for (let id = productIdFrom; id <= productIdTo; id++) {
+  for (const entry of catalog.values()) {
     scanned++
-    const product = await source.getProductSafe(id)
+    const product = await source.getProductSafe(entry.oldProductId)
     if (!product) {
       emit({
         type: 'step:progress',
         step,
         current: scanned,
         total,
-        detail: `skip ${id} (não encontrado)`,
+        detail: `skip ${entry.oldProductId} (não encontrado)`,
       })
       continue
     }
 
     try {
-      const [categoryPath, brandName] = await Promise.all([
-        resolveCategoryPath(product.CategoryId),
-        resolveBrandName(product.BrandId),
-      ])
+      const categoryPath = await resolveCategoryPath(product.CategoryId)
 
       const newProduct = await target.createProduct({
         Id: product.Id,
         Name: product.Name,
         CategoryPath: categoryPath,
-        BrandName: brandName,
+        BrandName: entry.brandName,
         DepartmentId: product.DepartmentId,
         LinkId: product.LinkId,
         RefId: product.RefId,

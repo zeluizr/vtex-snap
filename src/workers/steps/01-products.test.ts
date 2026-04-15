@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import type { BrandDetail, CategoryWithTreePath, EmitFn, Product } from '../types.js'
+import type {
+  CategoryWithTreePath,
+  DiscoveredCatalog,
+  DiscoveredProduct,
+  EmitFn,
+  Product,
+} from '../types.js'
 import { cloneProducts } from './01-products.js'
 import type { VtexClient } from '../../lib/vtex-client.js'
 
@@ -47,16 +53,19 @@ function makeCategory(overrides: Partial<CategoryWithTreePath> = {}): CategoryWi
   }
 }
 
-function makeBrand(overrides: Partial<BrandDetail> = {}): BrandDetail {
+function makeCatalogEntry(productId: number, brandName = 'Acme'): DiscoveredProduct {
   return {
-    id: 10,
-    name: 'Acme',
-    isActive: true,
-    title: '',
-    metaTagDescription: '',
-    imageUrl: null,
-    ...overrides,
+    oldProductId: productId,
+    brandName,
+    productSpecs: [],
+    skus: [],
   }
+}
+
+function makeCatalog(productIds: number[], brandName = 'Acme'): DiscoveredCatalog {
+  const map: DiscoveredCatalog = new Map()
+  for (const id of productIds) map.set(id, makeCatalogEntry(id, brandName))
+  return map
 }
 
 function mockClient(overrides: Partial<VtexClient>): VtexClient {
@@ -64,13 +73,12 @@ function mockClient(overrides: Partial<VtexClient>): VtexClient {
 }
 
 describe('cloneProducts', () => {
-  it('skips IDs that return null (404)', async () => {
+  it('skips products that return null (404)', async () => {
     const source = mockClient({
       getProductSafe: vi
         .fn()
         .mockImplementation((id: number) => Promise.resolve(id === 2 ? null : makeProduct(id))),
       getCategoryWithTreePath: vi.fn().mockResolvedValue(makeCategory()),
-      getBrand: vi.fn().mockResolvedValue(makeBrand()),
     })
     const createProduct = vi
       .fn()
@@ -78,26 +86,25 @@ describe('cloneProducts', () => {
     const target = mockClient({ createProduct })
     const emit: EmitFn = vi.fn()
 
-    const mappings = await cloneProducts(source, target, emit, 1, 3)
+    const mappings = await cloneProducts(source, target, emit, makeCatalog([1, 2, 3]))
 
     expect(source.getProductSafe).toHaveBeenCalledTimes(3)
     expect(createProduct).toHaveBeenCalledTimes(2)
     expect(mappings).toHaveLength(2)
   })
 
-  it('sends CategoryPath and BrandName resolved from source', async () => {
+  it('sends CategoryPath from source category and BrandName from catalog entry', async () => {
     const source = mockClient({
-      getProductSafe: vi.fn().mockResolvedValue(makeProduct(7, { CategoryId: 99, BrandId: 33 })),
+      getProductSafe: vi.fn().mockResolvedValue(makeProduct(7, { CategoryId: 99 })),
       getCategoryWithTreePath: vi
         .fn()
         .mockResolvedValue(makeCategory({ TreePath: ['Sports', 'Gear'] })),
-      getBrand: vi.fn().mockResolvedValue(makeBrand({ name: 'Nike' })),
     })
     const createProduct = vi.fn().mockResolvedValue(makeProduct(7))
     const target = mockClient({ createProduct })
     const emit: EmitFn = vi.fn()
 
-    await cloneProducts(source, target, emit, 7, 7)
+    await cloneProducts(source, target, emit, makeCatalog([7], 'Nike'))
 
     expect(createProduct).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -108,15 +115,13 @@ describe('cloneProducts', () => {
     )
   })
 
-  it('caches category and brand lookups across products', async () => {
+  it('caches category lookups across products', async () => {
     const getCategoryWithTreePath = vi.fn().mockResolvedValue(makeCategory())
-    const getBrand = vi.fn().mockResolvedValue(makeBrand())
     const source = mockClient({
       getProductSafe: vi
         .fn()
         .mockImplementation((id: number) => Promise.resolve(makeProduct(id))),
       getCategoryWithTreePath,
-      getBrand,
     })
     const createProduct = vi
       .fn()
@@ -124,10 +129,10 @@ describe('cloneProducts', () => {
     const target = mockClient({ createProduct })
     const emit: EmitFn = vi.fn()
 
-    await cloneProducts(source, target, emit, 1, 5)
+    await cloneProducts(source, target, emit, makeCatalog([1, 2, 3, 4, 5]))
 
+    // 5 products sharing CategoryId 50 → 1 fetch
     expect(getCategoryWithTreePath).toHaveBeenCalledTimes(1)
-    expect(getBrand).toHaveBeenCalledTimes(1)
   })
 
   it('falls back to category Name when TreePath is empty', async () => {
@@ -136,13 +141,12 @@ describe('cloneProducts', () => {
       getCategoryWithTreePath: vi
         .fn()
         .mockResolvedValue(makeCategory({ TreePath: null, Name: 'Solo' })),
-      getBrand: vi.fn().mockResolvedValue(makeBrand()),
     })
     const createProduct = vi.fn().mockResolvedValue(makeProduct(1))
     const target = mockClient({ createProduct })
     const emit: EmitFn = vi.fn()
 
-    await cloneProducts(source, target, emit, 1, 1)
+    await cloneProducts(source, target, emit, makeCatalog([1]))
 
     expect(createProduct).toHaveBeenCalledWith(expect.objectContaining({ CategoryPath: 'Solo' }))
   })
@@ -153,7 +157,6 @@ describe('cloneProducts', () => {
         .fn()
         .mockImplementation((id: number) => Promise.resolve(makeProduct(id))),
       getCategoryWithTreePath: vi.fn().mockResolvedValue(makeCategory()),
-      getBrand: vi.fn().mockResolvedValue(makeBrand()),
     })
     const createProduct = vi
       .fn()
@@ -163,7 +166,7 @@ describe('cloneProducts', () => {
     const events: Parameters<EmitFn>[0][] = []
     const emit: EmitFn = (e) => events.push(e)
 
-    const mappings = await cloneProducts(source, target, emit, 1, 2)
+    const mappings = await cloneProducts(source, target, emit, makeCatalog([1, 2]))
 
     const errorEvents = events.filter((e) => e.type === 'step:error')
     expect(errorEvents).toHaveLength(1)
@@ -177,7 +180,6 @@ describe('cloneProducts', () => {
         .fn()
         .mockImplementation((id: number) => Promise.resolve(makeProduct(id))),
       getCategoryWithTreePath: vi.fn().mockResolvedValue(makeCategory()),
-      getBrand: vi.fn().mockResolvedValue(makeBrand()),
     })
     const createProduct = vi
       .fn()
@@ -186,7 +188,7 @@ describe('cloneProducts', () => {
     const events: Parameters<EmitFn>[0][] = []
     const emit: EmitFn = (e) => events.push(e)
 
-    await cloneProducts(source, target, emit, 1, 3)
+    await cloneProducts(source, target, emit, makeCatalog([1, 2, 3]))
 
     const complete = events.find((e) => e.type === 'step:complete')
     expect(complete).toMatchObject({ type: 'step:complete', step: 'products', created: 3, errors: 0 })

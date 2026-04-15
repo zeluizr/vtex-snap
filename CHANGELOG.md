@@ -1,5 +1,38 @@
 # Changelog
 
+## v2.6.0 — 2026-04-15
+
+### Descoberta automática via SKU IDs
+
+O CLI deixa de pedir um range `productIdFrom..productIdTo`. Em vez disso, antes de qualquer etapa selecionada, executa uma fase de **descoberta** que:
+
+1. Pagina `GET /api/catalog_system/pvt/sku/stockkeepingunitids?page&pagesize=1000` até receber uma página vazia ou parcial.
+2. Para cada SKU ID, busca o contexto via `GET /api/catalog_system/pvt/sku/stockkeepingunitbyid/{id}`.
+3. Agrupa por `ProductId` e cacheia em memória `BrandName`, `ProductSpecifications` e `SkuSpecifications`.
+
+As três etapas (Produtos / SKUs / Valores de Especificações) consomem o catálogo descoberto, eliminando:
+
+- O prompt de range no CLI.
+- Chamadas desperdiçadas em IDs vazios (404).
+- A necessidade de re-buscar specs no passo de spec-values — já estão em mão desde a descoberta.
+
+### Cliente HTTP
+
+- Adicionados: `getSkuIds(page, pageSize)`, `getSkuContextSafe(skuId)`.
+- Removido: `getSkusByProductId` (descoberta substitui).
+
+### Tipos
+
+- `SkuContext` agora declara explicitamente os campos consumidos (`SkuName`, `Dimension`, `RealDimension`, `BrandName`, `AlternateIds`, etc.) — antes só tipava `Id`/`ProductId`/specs.
+- Novos: `DiscoveredSku`, `DiscoveredProduct`, `DiscoveredCatalog`.
+
+### Observações
+
+- O passo de SKUs deixa de chamar `getSkusByProductId` — usa diretamente o `SkuContext` cacheado para todos os campos do POST.
+- A clonagem agora é total por padrão. Filtros (por marca, categoria, etc.) podem entrar no futuro como opções.
+
+---
+
 ## v2.5.0 — 2026-04-15
 
 ### Fluxo simplificado: 6 → 3 etapas
