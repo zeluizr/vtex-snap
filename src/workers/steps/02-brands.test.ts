@@ -1,10 +1,28 @@
 import { describe, it, expect, vi } from 'vitest'
 import { IdMap } from '../../lib/id-map.js'
-import type { Brand, EmitFn } from '../types.js'
+import type { Brand, BrandListItem, EmitFn } from '../types.js'
 import { cloneBrands } from './02-brands.js'
 import type { VtexClient } from '../../lib/vtex-client.js'
 
-function makeBrand(id: number, overrides: Partial<Brand> = {}): Brand {
+function makeBrandListItem(id: number, overrides: Partial<BrandListItem> = {}): BrandListItem {
+  return {
+    id,
+    name: `Brand ${id}`,
+    isActive: true,
+    title: `Brand ${id}`,
+    metaTagDescription: '',
+    imageUrl: null,
+    keywords: 'kw1,kw2',
+    siteTitle: '',
+    text: '',
+    score: null,
+    menuHome: false,
+    linkId: `brand-${id}`,
+    ...overrides,
+  }
+}
+
+function makeBrand(id: number): Brand {
   return {
     Id: id,
     Name: `Brand ${id}`,
@@ -12,14 +30,13 @@ function makeBrand(id: number, overrides: Partial<Brand> = {}): Brand {
     Title: `Brand ${id}`,
     MetaTagDescription: '',
     ImageUrl: null,
-    KeyWords: 'kw1,kw2',
-    Keywords: 'kw1,kw2',
+    KeyWords: '',
+    Keywords: '',
     SiteTitle: '',
     Text: '',
     Score: null,
     MenuHome: false,
     LinkId: `brand-${id}`,
-    ...overrides,
   }
 }
 
@@ -29,7 +46,7 @@ function mockClient(overrides: Partial<VtexClient>): VtexClient {
 
 describe('cloneBrands', () => {
   it('emits step:start with correct total', async () => {
-    const brands = [makeBrand(1), makeBrand(2)]
+    const brands = [makeBrandListItem(1), makeBrandListItem(2)]
     const source = mockClient({ getBrands: vi.fn().mockResolvedValue(brands) })
     const target = mockClient({
       createBrand: vi.fn().mockResolvedValue(makeBrand(100)),
@@ -44,7 +61,7 @@ describe('cloneBrands', () => {
   })
 
   it('registers brand mappings in idMap', async () => {
-    const brands = [makeBrand(10)]
+    const brands = [makeBrandListItem(10)]
     const source = mockClient({ getBrands: vi.fn().mockResolvedValue(brands) })
     const target = mockClient({ createBrand: vi.fn().mockResolvedValue(makeBrand(999)) })
     const idMap = new IdMap()
@@ -55,8 +72,8 @@ describe('cloneBrands', () => {
     expect(idMap.get('brand', 10)).toBe(999)
   })
 
-  it('uses KeyWords with fallback to Keywords when KeyWords is nullish', async () => {
-    const brand = makeBrand(1, { KeyWords: undefined as unknown as string, Keywords: 'fallback' })
+  it('passes keywords from source brand', async () => {
+    const brand = makeBrandListItem(1, { keywords: 'myKeyword' })
     const source = mockClient({ getBrands: vi.fn().mockResolvedValue([brand]) })
     const createBrand = vi.fn().mockResolvedValue(makeBrand(100))
     const target = mockClient({ createBrand })
@@ -66,12 +83,12 @@ describe('cloneBrands', () => {
     await cloneBrands(source, target, idMap, emit)
 
     expect(createBrand).toHaveBeenCalledWith(
-      expect.objectContaining({ KeyWords: 'fallback' }),
+      expect.objectContaining({ KeyWords: 'myKeyword' }),
     )
   })
 
   it('continues cloning remaining brands when one fails', async () => {
-    const brands = [makeBrand(1), makeBrand(2), makeBrand(3)]
+    const brands = [makeBrandListItem(1), makeBrandListItem(2), makeBrandListItem(3)]
     const source = mockClient({ getBrands: vi.fn().mockResolvedValue(brands) })
     const createBrand = vi
       .fn()
@@ -90,7 +107,7 @@ describe('cloneBrands', () => {
   })
 
   it('emits step:progress for each successfully created brand', async () => {
-    const brands = [makeBrand(1), makeBrand(2)]
+    const brands = [makeBrandListItem(1), makeBrandListItem(2)]
     const source = mockClient({ getBrands: vi.fn().mockResolvedValue(brands) })
     const target = mockClient({
       createBrand: vi

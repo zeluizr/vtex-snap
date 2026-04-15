@@ -13,20 +13,27 @@ import { cloneStock } from './steps/10-stock.js'
 import { cloneCollections } from './steps/11-collections.js'
 import type { EmitFn, VtexCredentials } from './types.js'
 
+export interface RunCloneOptions {
+  categoryIds?: number[]
+}
+
 export async function runClone(
   source: VtexCredentials,
   target: VtexCredentials,
   selectedSteps: string[],
   emit: EmitFn,
+  options: RunCloneOptions = {},
 ): Promise<void> {
   const sourceClient = new VtexClient(source)
   const targetClient = new VtexClient(target)
   const idMap = new IdMap()
 
   const should = (step: string) => selectedSteps.includes(step)
+  const categoryIds = options.categoryIds ?? []
 
   try {
-    if (should('categories')) await cloneCategories(sourceClient, targetClient, idMap, emit)
+    if (should('categories'))
+      await cloneCategories(sourceClient, targetClient, idMap, emit, categoryIds)
     if (should('brands')) await cloneBrands(sourceClient, targetClient, idMap, emit)
     if (should('trade-policies')) await cloneTradePolicies(sourceClient, targetClient, idMap, emit)
     if (should('specifications')) await cloneSpecifications(sourceClient, targetClient, idMap, emit)

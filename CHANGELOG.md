@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Categorías
+- Nuevo archivo de configuración `~/.config/vtex-snap/categories.txt` — un ID por línea para definir explícitamente qué categorías clonar
+- Soporta categorías **inactivas** (que el endpoint de árbol de VTEX omite)
+- Las categorías se ordenan topológicamente (padres antes que hijos) antes de crearlas en el destino, garantizando el mapeo correcto de `FatherCategoryId`
+- Si el archivo no existe, el CLI aborta con instrucciones claras
+
+### Correcciones
+- **Categorías**: `CategoryTreeNode` corregido a PascalCase (`Id`, `Name`, `Children`, `HasChildren`, `Url`) — coincide con la respuesta real del endpoint `/api/catalog_system/pvt/category/tree/{levels}`. Antes resultaba en `category undefined` y `Name is required` al crear
+- **Trade Policies**: endpoint corregido a `/api/catalog_system/pvt/saleschannel/list` (antes devolvía 404)
+- **Productos** y **Especificaciones**: `collectIds` actualizado para usar el casing PascalCase del árbol de categorías
+
+### Cliente HTTP
+- Nuevo método `VtexClient.getCategoryByIdSafe` — devuelve `null` en lugar de lanzar error en HTTP 404
+
+---
+
 ## v2.3.0 — 2026-03-17
 
 ### Publicación en npm

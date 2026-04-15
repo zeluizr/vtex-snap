@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts'
 import ora from 'ora'
 import pc from 'picocolors'
-import { loadConfig } from '../config/store.js'
+import { getCategoriesFilePath, loadCategoryIds, loadConfig } from '../config/store.js'
 import { VtexClient } from '../lib/vtex-client.js'
 import { logEvent } from '../ui/logger.js'
 import { updateSpinner } from '../ui/progress.js'
@@ -113,6 +113,24 @@ export async function runStart(): Promise<void> {
     selectedSteps = chosen as string[]
   }
 
+  let categoryIds: number[] = []
+  if (selectedSteps.includes('categories') || selectedSteps.includes('products')) {
+    const fromFile = await loadCategoryIds()
+    if (fromFile && fromFile.length > 0) {
+      categoryIds = fromFile
+      p.log.info(
+        `Carregados ${categoryIds.length} IDs de categoria de ${pc.dim(getCategoriesFilePath())}`,
+      )
+    } else {
+      p.log.warn(
+        `Arquivo de categorias não encontrado em ${pc.dim(getCategoriesFilePath())}.\n` +
+          `Crie um arquivo de texto com um ID por linha (categorias da loja origem).`,
+      )
+      p.cancel('Operação cancelada.')
+      process.exit(1)
+    }
+  }
+
   const stepCount = selectedSteps.length
   const confirmed = await p.confirm({
     message: `Clonar de ${pc.cyan(config.source.accountName)} → ${pc.cyan(config.target.accountName)} (${stepCount} etapas). Continuar?`,
@@ -136,7 +154,7 @@ export async function runStart(): Promise<void> {
   }
 
   try {
-    await runClone(config.source, config.target, selectedSteps, emit)
+    await runClone(config.source, config.target, selectedSteps, emit, { categoryIds })
     const elapsed = Math.round((Date.now() - startTime) / 1000)
     const mins = Math.floor(elapsed / 60)
     const secs = elapsed % 60

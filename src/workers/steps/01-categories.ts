@@ -2,18 +2,34 @@ import type { IdMap } from '../../lib/id-map.js'
 import type { VtexClient } from '../../lib/vtex-client.js'
 import type { Category, EmitFn } from '../types.js'
 
-export function flattenTree(categories: Category[]): Category[] {
-  const result: Category[] = []
-  function walk(nodes: Category[]) {
-    for (const node of nodes) {
-      result.push(node)
-      if (node.Children && node.Children.length > 0) {
-        walk(node.Children)
+export function orderByHierarchy(categories: Category[]): Category[] {
+  const remaining = new Map<number, Category>()
+  for (const c of categories) remaining.set(c.Id, c)
+
+  const ordered: Category[] = []
+  const placed = new Set<number>()
+
+  let progressed = true
+  while (remaining.size > 0 && progressed) {
+    progressed = false
+    for (const [id, cat] of remaining) {
+      const parentReady =
+        cat.FatherCategoryId === null ||
+        !remaining.has(cat.FatherCategoryId) ||
+        placed.has(cat.FatherCategoryId)
+      if (parentReady) {
+        ordered.push(cat)
+        placed.add(id)
+        remaining.delete(id)
+        progressed = true
       }
     }
   }
-  walk(categories)
-  return result
+
+  // Append any leftovers (shouldn't happen, but defensive)
+  for (const cat of remaining.values()) ordered.push(cat)
+
+  return ordered
 }
 
 export async function cloneCategories(
@@ -21,20 +37,28 @@ export async function cloneCategories(
   target: VtexClient,
   idMap: IdMap,
   emit: EmitFn,
+  categoryIds: number[],
 ): Promise<void> {
   const step = 'categories'
-  console.log('[step:categories] fetching category tree')
+  console.log(`[step:categories] fetching ${categoryIds.length} category IDs`)
 
-  const tree = await source.getCategoryTree(3)
-  const flat = flattenTree(tree)
+  const fetched: Category[] = []
+  for (const id of categoryIds) {
+    const cat = await source.getCategoryByIdSafe(id)
+    if (cat) fetched.push(cat)
+  }
 
-  emit({ type: 'step:start', step, total: flat.length })
+  console.log(`[step:categories] found ${fetched.length} categories`)
+
+  const ordered = orderByHierarchy(fetched)
+
+  emit({ type: 'step:start', step, total: ordered.length })
 
   let created = 0
   let errors = 0
 
-  for (let i = 0; i < flat.length; i++) {
-    const cat = flat[i]!
+  for (let i = 0; i < ordered.length; i++) {
+    const cat = ordered[i]!
     try {
       const newFatherCategoryId =
         cat.FatherCategoryId !== null
@@ -65,7 +89,7 @@ export async function cloneCategories(
         type: 'step:progress',
         step,
         current: i + 1,
-        total: flat.length,
+        total: ordered.length,
         detail: cat.Name,
       })
     } catch (error) {

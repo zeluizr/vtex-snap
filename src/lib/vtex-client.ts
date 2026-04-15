@@ -1,6 +1,8 @@
 import type {
   Brand,
+  BrandListItem,
   Category,
+  CategoryTreeNode,
   Collection,
   CreateBrand,
   CreateCategory,
@@ -114,10 +116,25 @@ export class VtexClient {
 
   // Catalog — Categories
 
-  async getCategoryTree(levels: number = 3): Promise<Category[]> {
-    return this.request<Category[]>(
+  async getCategoryTree(levels: number = 3): Promise<CategoryTreeNode[]> {
+    return this.request<CategoryTreeNode[]>(
       this.catalogSystemUrl(`/pvt/category/tree/${levels}`),
     )
+  }
+
+  async getCategoryById(id: number): Promise<Category> {
+    return this.request<Category>(this.catalogUrl(`/pvt/category/${id}`))
+  }
+
+  async getCategoryByIdSafe(id: number): Promise<Category | null> {
+    try {
+      return await this.getCategoryById(id)
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('HTTP 404')) {
+        return null
+      }
+      throw error
+    }
   }
 
   async createCategory(data: CreateCategory): Promise<Category> {
@@ -129,8 +146,8 @@ export class VtexClient {
 
   // Catalog — Brands
 
-  async getBrands(): Promise<Brand[]> {
-    return this.request<Brand[]>(this.catalogSystemUrl('/pvt/brand/list'))
+  async getBrands(): Promise<BrandListItem[]> {
+    return this.request<BrandListItem[]>(this.catalogSystemUrl('/pvt/brand/list'))
   }
 
   async createBrand(data: CreateBrand): Promise<Brand> {
@@ -143,7 +160,7 @@ export class VtexClient {
   // Trade Policies
 
   async getTradePolicies(): Promise<TradePolicy[]> {
-    return this.request<TradePolicy[]>(this.catalogUrl('/pvt/tradepolicy'))
+    return this.request<TradePolicy[]>(this.catalogSystemUrl('/pvt/saleschannel/list'))
   }
 
   // Specifications

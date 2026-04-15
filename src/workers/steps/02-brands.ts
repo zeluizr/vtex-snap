@@ -22,18 +22,18 @@ export async function cloneBrands(
     const brand = brands[i]!
     try {
       const newBrand = await target.createBrand({
-        Name: brand.Name,
-        IsActive: brand.IsActive,
-        Title: brand.Title,
-        MetaTagDescription: brand.MetaTagDescription,
-        KeyWords: brand.KeyWords ?? brand.Keywords ?? '',
-        SiteTitle: brand.SiteTitle,
-        Text: brand.Text,
-        Score: brand.Score,
-        MenuHome: brand.MenuHome,
+        Name: brand.name,
+        IsActive: brand.isActive,
+        Title: brand.title,
+        MetaTagDescription: brand.metaTagDescription,
+        KeyWords: brand.keywords ?? '',
+        SiteTitle: brand.siteTitle,
+        Text: brand.text,
+        Score: brand.score,
+        MenuHome: brand.menuHome,
       })
 
-      idMap.set('brand', brand.Id, newBrand.Id)
+      idMap.set('brand', brand.id, newBrand.Id)
       created++
 
       emit({
@@ -41,16 +41,16 @@ export async function cloneBrands(
         step,
         current: i + 1,
         total: brands.length,
-        detail: brand.Name,
+        detail: brand.name,
       })
     } catch (error) {
       errors++
       const message = error instanceof Error ? error.message : String(error)
-      console.error(`[step:brands] error cloning brand ${brand.Id}: ${message}`)
+      console.error(`[step:brands] error cloning brand ${brand.id}: ${message}`)
       emit({
         type: 'step:error',
         step,
-        message: `Failed to clone brand "${brand.Name}"`,
+        message: `Failed to clone brand "${brand.name}"`,
         detail: message,
       })
     }

@@ -21,6 +21,26 @@ export function getConfigPath(): string {
   return join(homedir(), '.config', 'vtex-snap', 'config.json')
 }
 
+export function getCategoriesFilePath(): string {
+  return join(homedir(), '.config', 'vtex-snap', 'categories.txt')
+}
+
+export async function loadCategoryIds(): Promise<number[] | null> {
+  try {
+    const content = await readFile(getCategoriesFilePath(), 'utf-8')
+    const ids: number[] = []
+    for (const rawLine of content.split('\n')) {
+      const line = rawLine.trim()
+      if (!line) continue
+      const id = parseInt(line, 10)
+      if (Number.isFinite(id) && id > 0) ids.push(id)
+    }
+    return ids.length > 0 ? Array.from(new Set(ids)) : null
+  } catch {
+    return null
+  }
+}
+
 export async function loadConfig(): Promise<CliConfig | null> {
   try {
     const content = await readFile(getConfigPath(), 'utf-8')

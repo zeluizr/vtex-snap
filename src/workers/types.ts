@@ -1,5 +1,28 @@
 // VTEX API Types
 
+export interface CategoryTreeNode {
+  Id: number
+  Name: string
+  HasChildren: boolean
+  Url: string
+  Children: CategoryTreeNode[]
+}
+
+export interface BrandListItem {
+  id: number
+  name: string
+  isActive: boolean
+  title: string
+  metaTagDescription: string
+  imageUrl: string | null
+  keywords: string
+  siteTitle: string
+  text: string
+  score: number | null
+  menuHome: boolean
+  linkId: string
+}
+
 export interface Category {
   Id: number
   Name: string

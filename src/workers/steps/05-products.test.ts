@@ -1,28 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { IdMap } from '../../lib/id-map.js'
-import type { Category, EmitFn, Product, ProductAndSkuIds } from '../types.js'
+import type { CategoryTreeNode, EmitFn, Product, ProductAndSkuIds } from '../types.js'
 import { cloneProducts } from './05-products.js'
 import type { VtexClient } from '../../lib/vtex-client.js'
 
-function makeCategoryNode(id: number, children: Category[] = []): Category {
+function makeCategoryNode(id: number, children: CategoryTreeNode[] = []): CategoryTreeNode {
   return {
     Id: id,
     Name: `Cat ${id}`,
-    FatherCategoryId: null,
-    Title: '',
-    Description: '',
-    Keywords: '',
-    IsActive: true,
-    LomadeeCampaignCode: '',
-    AdWordsRemarketingCode: '',
-    ShowInStoreFront: true,
-    ShowBrandFilter: true,
-    ActiveStoreFrontLink: true,
-    GlobalCategoryId: 0,
-    StockKeepingUnitSelectionMode: 'COMBO',
-    Score: null,
-    LinkId: `cat-${id}`,
     HasChildren: children.length > 0,
+    Url: `https://example.com/cat-${id}`,
     Children: children,
   }
 }

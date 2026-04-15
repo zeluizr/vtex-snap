@@ -12,7 +12,8 @@
       "Bash(chmod:*)",
       "Bash(node:*)",
       "Bash(git remote:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(pnpm typecheck:*)"
     ]
   }
 }

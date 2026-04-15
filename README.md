@@ -55,13 +55,28 @@ vtex-snap init
 
 Solicita las credenciales de las tiendas de origen y destino (account name + app key/token).
 
-### 2. Iniciar clonación
+### 2. Definir categorías a clonar
+
+Los pasos de **Categorías** y **Productos** requieren un archivo con los IDs de categoría de la tienda origen — uno por línea. Esto permite incluir categorías inactivas (que el endpoint de árbol de VTEX omite) y evita escaneos innecesarios.
+
+Crea el archivo en `~/.config/vtex-snap/categories.txt`:
+
+```text
+1
+2
+5
+42
+```
+
+> 💡 Puedes obtener los IDs desde el admin de VTEX en **Catálogo → Categorías**, o consultando la API `GET /api/catalog/pvt/category/{id}`.
+
+### 3. Iniciar clonación
 
 ```bash
 vtex-snap start
 ```
 
-Seleccione todos los pasos o elija pasos específicos. `vtex-snap` validará la conectividad antes de comenzar.
+Seleccione todos los pasos o elija pasos específicos. `vtex-snap` validará la conectividad y cargará los IDs de categoría desde el archivo antes de comenzar.
 
 ---
 
