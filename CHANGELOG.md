@@ -1,20 +1,61 @@
 # Changelog
 
-## Unreleased
+## v2.5.0 — 2026-04-15
 
-### Categorías
-- Nuevo archivo de configuración `~/.config/vtex-snap/categories.txt` — un ID por línea para definir explícitamente qué categorías clonar
-- Soporta categorías **inactivas** (que el endpoint de árbol de VTEX omite)
-- Las categorías se ordenan topológicamente (padres antes que hijos) antes de crearlas en el destino, garantizando el mapeo correcto de `FatherCategoryId`
-- Si el archivo no existe, el CLI aborta con instrucciones claras
+### Fluxo simplificado: 6 → 3 etapas
 
-### Correcciones
-- **Categorías**: `CategoryTreeNode` corregido a PascalCase (`Id`, `Name`, `Children`, `HasChildren`, `Url`) — coincide con la respuesta real del endpoint `/api/catalog_system/pvt/category/tree/{levels}`. Antes resultaba en `category undefined` y `Name is required` al crear
-- **Trade Policies**: endpoint corregido a `/api/catalog_system/pvt/saleschannel/list` (antes devolvía 404)
-- **Productos** y **Especificaciones**: `collectIds` actualizado para usar el casing PascalCase del árbol de categorías
+Aproveitando que `POST /api/catalog/pvt/product` aceita `CategoryPath` + `BrandName` (criando categoria e marca sob demanda) e que `PUT /api/catalog/pvt/{product|stockkeepingunit}/{id}/specificationvalue` cria grupo + campo + valores de especificação automaticamente, eliminamos as etapas de **Marcas**, **Categorias** e **Definição de Especificações**. Novo fluxo:
+
+1. **Produtos** — para cada produto, resolvemos `CategoryPath` (via `TreePath`) e `BrandName` da origem e enviamos no POST. Categoria e marca são criadas no destino se ainda não existirem.
+2. **SKUs**
+3. **Valores de Especificações** — usa `getSkuContext` para extrair specs de produto e SKU com `FieldGroupName`, e PUT no endpoint que cria tudo automaticamente.
+
+### Mudanças quebradeiras
+
+- O arquivo `~/.config/vtex-snap/categories.txt` foi removido. Toda a descoberta agora acontece via range de IDs de produto.
+- O `IdMap` foi totalmente removido (não há mais necessidade de mapear IDs entre execuções).
+- `vtex-client.ts` ficou bem mais enxuto: removidos todos os métodos de marca/categoria/especificações além dos essenciais para resolver path/name; adicionados `getCategoryWithTreePath`, `getBrand`, `getSkuContext`, `setProductSpecValue`, `setSkuSpecValue`.
+
+### Cache
+
+- `01-products.ts` cacheia resoluções de categoria e marca em memória — produtos que compartilham a mesma categoria/marca disparam apenas uma chamada à API.
+
+---
+
+## v2.4.0 — 2026-04-15
+
+### Cambio de alcance: 11 → 6 etapas
+Reducción del flujo a lo esencial para clonar el catálogo en ambientes de prueba. Nuevo orden:
+
+1. **Marcas**
+2. **Categorías**
+3. **Especificaciones** (creación de definiciones)
+4. **Productos** (descubrimiento por rango de IDs)
+5. **SKUs**
+6. **Valores de Especificaciones** (asociados a productos/SKUs ya creados)
+
+**Eliminados**: Trade Policies, Imágenes, Precios, Stock, Colecciones.
+
+### Preservación de IDs origen → destino
+- Marcas, Categorías, Productos y SKUs ahora envían `Id` en el body del POST — el destino mantiene el mismo ID que el origen
+- Elimina casi toda dependencia del `IdMap` entre ejecuciones (solo persiste para spec fields/groups, ya que la API de specs no acepta `Id` en el POST)
+- Permite reanudar clonaciones parciales sin perder el mapeo
+
+### CLI
+- Nuevo prompt: rango de IDs de producto a recorrer (`productIdFrom..productIdTo`) — ignora 404s automáticamente
+- `~/.config/vtex-snap/categories.txt` sigue siendo requerido para las etapas de Categorías y Especificaciones
+- Preflight de credenciales ahora usa `getBrands()` (endpoint liviano disponible en cualquier cuenta)
 
 ### Cliente HTTP
-- Nuevo método `VtexClient.getCategoryByIdSafe` — devuelve `null` en lugar de lanzar error en HTTP 404
+- Nuevos métodos: `getProductSafe(id)` (404 → null), `getSkusByProductId(productId)`
+- Eliminados métodos no usados: `getCategoryTree`, `getTradePolicies`, `getProductAndSkuIds`, `getSkuImages`, `createSkuImage`, `getPrice`, `setPrice`, `getWarehouses`, `getInventory`, `updateInventory`, `getCollections`, `createCollection`, `getCollectionProducts`, `addSkuToCollection`
+
+### Categorías (de Unreleased)
+- Archivo `~/.config/vtex-snap/categories.txt` — un ID por línea, soporta categorías inactivas
+- Orden topológico (padres antes que hijos) garantizando `FatherCategoryId` correcto
+
+### Correcciones (de Unreleased)
+- `CategoryTreeNode` PascalCase corregido (no aplica más por eliminación del método, pero se preservó la lección en el nuevo flujo)
 
 ---
 

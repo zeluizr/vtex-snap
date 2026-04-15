@@ -112,7 +112,7 @@ export async function runInit(): Promise<void> {
   s.start('Verificando loja origem...')
   try {
     const sourceClient = new VtexClient(config.source)
-    await sourceClient.getCategoryTree(1)
+    await sourceClient.getBrands()
     s.stop(pc.green('✓ Loja origem: OK'))
   } catch (error) {
     const msg = error instanceof Error ? error.message.split('\n')[0] : String(error)
@@ -122,7 +122,7 @@ export async function runInit(): Promise<void> {
   s.start('Verificando loja destino...')
   try {
     const targetClient = new VtexClient(config.target)
-    await targetClient.getCategoryTree(1)
+    await targetClient.getBrands()
     s.stop(pc.green('✓ Loja destino: OK'))
   } catch (error) {
     const msg = error instanceof Error ? error.message.split('\n')[0] : String(error)

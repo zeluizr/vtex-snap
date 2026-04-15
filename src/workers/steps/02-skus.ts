@@ -1,33 +1,53 @@
-import type { IdMap } from '../../lib/id-map.js'
 import type { VtexClient } from '../../lib/vtex-client.js'
 import type { EmitFn } from '../types.js'
-import type { ProductSkuMapping } from './05-products.js'
+import type { ProductSkuMapping } from './01-products.js'
+
+export interface SkuMapping {
+  oldSkuId: number
+  newSkuId: number
+  productId: number
+}
 
 export async function cloneSkus(
   source: VtexClient,
   target: VtexClient,
-  idMap: IdMap,
   emit: EmitFn,
   productMappings: ProductSkuMapping[],
-): Promise<void> {
+): Promise<SkuMapping[]> {
   const step = 'skus'
   console.log('[step:skus] starting')
 
-  const totalSkus = productMappings.reduce((sum, m) => sum + m.skuIds.length, 0)
+  // Discover SKUs per source product
+  const skusByProduct: Array<{
+    productId: number
+    skus: Awaited<ReturnType<VtexClient['getSkusByProductId']>>
+  }> = []
+  let totalSkus = 0
+  for (const { oldProductId } of productMappings) {
+    try {
+      const skus = await source.getSkusByProductId(oldProductId)
+      skusByProduct.push({ productId: oldProductId, skus })
+      totalSkus += skus.length
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`[step:skus] could not fetch SKUs for product ${oldProductId}: ${message}`)
+    }
+  }
+
   emit({ type: 'step:start', step, total: totalSkus })
 
   let created = 0
   let errors = 0
   let current = 0
+  const mappings: SkuMapping[] = []
 
-  for (const { newProductId, skuIds } of productMappings) {
-    for (const oldSkuId of skuIds) {
+  for (const { productId, skus } of skusByProduct) {
+    for (const sku of skus) {
       current++
       try {
-        const sku = await source.getSku(oldSkuId)
-
         const newSku = await target.createSku({
-          ProductId: newProductId,
+          Id: sku.Id,
+          ProductId: productId,
           IsActive: false,
           Name: sku.Name,
           RefId: sku.RefId ?? '',
@@ -53,24 +73,33 @@ export async function cloneSkus(
           ActivateIfPossible: false,
         })
 
-        idMap.set('sku', oldSkuId, newSku.Id)
         created++
+        mappings.push({ oldSkuId: sku.Id, newSkuId: newSku.Id, productId })
+
+        if (sku.IsActive) {
+          try {
+            await target.activateSku(newSku.Id)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            console.warn(`[step:skus] could not activate SKU ${newSku.Id}: ${message}`)
+          }
+        }
 
         emit({
           type: 'step:progress',
           step,
           current,
           total: totalSkus,
-          detail: `SKU ${oldSkuId} → ${newSku.Id}`,
+          detail: `SKU ${sku.Id} → ${newSku.Id}`,
         })
       } catch (error) {
         errors++
         const message = error instanceof Error ? error.message : String(error)
-        console.error(`[step:skus] error cloning SKU ${oldSkuId}: ${message}`)
+        console.error(`[step:skus] error cloning SKU ${sku.Id}: ${message}`)
         emit({
           type: 'step:error',
           step,
-          message: `Failed to clone SKU ${oldSkuId}`,
+          message: `Failed to clone SKU ${sku.Id}`,
           detail: message,
         })
       }
@@ -79,4 +108,5 @@ export async function cloneSkus(
 
   emit({ type: 'step:complete', step, created, errors })
   console.log(`[step:skus] done: created=${created}, errors=${errors}`)
+  return mappings
 }

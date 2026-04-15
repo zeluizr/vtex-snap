@@ -15,21 +15,15 @@
 
 `vtex-snap` migra todo el catálogo VTEX de una cuenta a otra — de forma interactiva, paso a paso, con seguimiento de progreso.
 
-**Recursos clonados:**
+**Recursos clonados (3 etapas, en orden):**
 
 | # | Recurso |
 |---|---------|
-| 1 | Categorías |
-| 2 | Marcas |
-| 3 | Trade Policies |
-| 4 | Especificaciones |
-| 5 | Productos |
-| 6 | SKUs |
-| 7 | Imágenes |
-| 8 | Valores de Spec |
-| 9 | Precios |
-| 10 | Stock |
-| 11 | Colecciones |
+| 1 | Productos (por rango de IDs) — categoría y marca creadas automáticamente |
+| 2 | SKUs |
+| 3 | Valores de Especificaciones — grupo y campo creados automáticamente |
+
+> Pensado para clonar catálogos a **ambientes de prueba**. Aprovecha endpoints de VTEX que crean categoría, marca, grupo de specs y specs sob demanda — eliminando los pasos intermedios. Los IDs de origen se preservan en el destino siempre que la API lo permite. No incluye imágenes, precios, stock ni colecciones.
 
 ---
 
@@ -55,28 +49,15 @@ vtex-snap init
 
 Solicita las credenciales de las tiendas de origen y destino (account name + app key/token).
 
-### 2. Definir categorías a clonar
-
-Los pasos de **Categorías** y **Productos** requieren un archivo con los IDs de categoría de la tienda origen — uno por línea. Esto permite incluir categorías inactivas (que el endpoint de árbol de VTEX omite) y evita escaneos innecesarios.
-
-Crea el archivo en `~/.config/vtex-snap/categories.txt`:
-
-```text
-1
-2
-5
-42
-```
-
-> 💡 Puedes obtener los IDs desde el admin de VTEX en **Catálogo → Categorías**, o consultando la API `GET /api/catalog/pvt/category/{id}`.
-
-### 3. Iniciar clonación
+### 2. Iniciar clonación
 
 ```bash
 vtex-snap start
 ```
 
-Seleccione todos los pasos o elija pasos específicos. `vtex-snap` validará la conectividad y cargará los IDs de categoría desde el archivo antes de comenzar.
+Seleccione todos los pasos o elija pasos específicos. Se le pedirá un rango de IDs de producto (`productIdFrom..productIdTo`) — los IDs inexistentes (404) se ignoran automáticamente.
+
+`vtex-snap` validará la conectividad antes de comenzar.
 
 ---
 
