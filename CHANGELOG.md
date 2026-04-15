@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.9.2 — 2026-04-15
+
+### Migración a npm, sin coverage
+
+- **Package manager único: `npm`.** Eliminado `pnpm-lock.yaml`; `package-lock.json` pasa a ser el lockfile versionado. Workflows `ci.yml` y `publish.yml` ya no usan `pnpm/action-setup` — solo `actions/setup-node@v4` con `cache: npm`, `npm ci`, `npm run build`, `npm test`.
+- **Coverage removido.** Eliminada la dependencia `@vitest/coverage-v8`, el script `test:coverage` y el bloque `coverage` de `vitest.config.ts`. Directorio `coverage/` (versionado por error) removido del repo y añadido al `.gitignore`.
+- **Docs actualizadas.** `README.md`, `CLAUDE.md` y el template de PR ahora referencian `npm install` / `npm run build` / `npm test` en lugar de los equivalentes pnpm.
+- **Vitest fijado en `^3.2.0`** — la 4.x tiene conflicto de peer deps (`rolldown-plugin-dts`) que impide `npm install` sin `--legacy-peer-deps`.
+
+---
+
 ## v2.9.1 — 2026-04-15
 
 ### Preflight alineado al endpoint real
