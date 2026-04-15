@@ -15,21 +15,15 @@
 
 `vtex-snap` migra todo el catálogo VTEX de una cuenta a otra — de forma interactiva, paso a paso, con seguimiento de progreso.
 
-**Recursos clonados:**
+**Recursos clonados (3 etapas, en orden):**
 
 | # | Recurso |
 |---|---------|
-| 1 | Categorías |
-| 2 | Marcas |
-| 3 | Trade Policies |
-| 4 | Especificaciones |
-| 5 | Productos |
-| 6 | SKUs |
-| 7 | Imágenes |
-| 8 | Valores de Spec |
-| 9 | Precios |
-| 10 | Stock |
-| 11 | Colecciones |
+| 1 | Productos — categoría y marca creadas automáticamente |
+| 2 | SKUs |
+| 3 | Valores de Especificaciones — grupo y campo creados automáticamente |
+
+> Pensado para clonar catálogos a **ambientes de prueba**. Aprovecha endpoints de VTEX que crean categoría, marca, grupo de specs y specs sob demanda — eliminando los pasos intermedios. Los IDs de origen se preservan en el destino siempre que la API lo permite. No incluye imágenes, precios, stock ni colecciones.
 
 ---
 
@@ -47,36 +41,50 @@ pnpm add -g vtex-snap
 
 ## Uso
 
-### 1. Configurar credenciales
+### 1. Agregar un perfil de tienda
+
+```bash
+vtex-snap config
+```
+
+Solicita `accountName`, `appKey`, `appToken` y `sellerId` y valida con un GET liviano a `/pvt/brand/list`. Repite el comando para cada tienda (origen, destino, sandboxes…). Los perfiles quedan guardados en `~/.config/vtex-snap/config.json`.
+
+> **Nota sobre permisos del AppKey.** El preflight de `vtex-snap init` valida con `/pvt/sku/stockkeepingunitids` — el mismo endpoint que usa la fase de Descubrimiento. Si el AppKey no tiene permiso de lectura de Catálogo (Products & SKU), el init aborta antes de entrar al Dashboard con un error claro.
+
+### 2. Iniciar la clonación
 
 ```bash
 vtex-snap init
 ```
 
-Solicita las credenciales de las tiendas de origen y destino (account name + app key/token).
+- Si aún no hay perfiles, te guía a crearlos inline.
+- Si hay 2 o más, elige source y target en dos `select`.
+- Confirma y muestra un dashboard tipo Docker pull con el progreso de cada etapa (Discovery / Products / SKUs / Spec Values).
+- Cancela en cualquier momento con `q`, `Esc` o `Ctrl+C`.
 
-### 2. Definir categorías a clonar
+La clonación es **total y automática**: una fase inicial de descubrimiento pagina todos los SKU IDs de la tienda origen (`/pvt/sku/stockkeepingunitids`) y cachea el contexto de cada uno. Conflictos (HTTP 409) se reciclan automáticamente como `PUT` (update).
 
-Los pasos de **Categorías** y **Productos** requieren un archivo con los IDs de categoría de la tienda origen — uno por línea. Esto permite incluir categorías inactivas (que el endpoint de árbol de VTEX omite) y evita escaneos innecesarios.
-
-Crea el archivo en `~/.config/vtex-snap/categories.txt`:
-
-```text
-1
-2
-5
-42
-```
-
-> 💡 Puedes obtener los IDs desde el admin de VTEX en **Catálogo → Categorías**, o consultando la API `GET /api/catalog/pvt/category/{id}`.
-
-### 3. Iniciar clonación
+### 3. Ayuda
 
 ```bash
-vtex-snap start
+vtex-snap help
+vtex-snap help init
+vtex-snap help config
 ```
 
-Seleccione todos los pasos o elija pasos específicos. `vtex-snap` validará la conectividad y cargará los IDs de categoría desde el archivo antes de comenzar.
+---
+
+## Idioma
+
+El CLI habla **portugués, español e inglés**. Detecta el idioma automáticamente desde el locale del SO; puedes forzarlo de tres formas (en orden de precedencia):
+
+```bash
+vtex-snap start --lang pt           # flag CLI (mayor prioridad)
+VTEX_SNAP_LANG=es vtex-snap start   # variable de entorno
+vtex-snap init                      # elige el idioma y queda persistido
+```
+
+Idiomas soportados: `pt`, `es`, `en`. Fallback: `en`.
 
 ---
 

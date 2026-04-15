@@ -1,20 +1,12 @@
-import { IdMap } from '../lib/id-map.js'
 import { VtexClient } from '../lib/vtex-client.js'
-import { cloneCategories } from './steps/01-categories.js'
-import { cloneBrands } from './steps/02-brands.js'
-import { cloneTradePolicies } from './steps/03-trade-policies.js'
-import { cloneSpecifications } from './steps/04-specifications.js'
-import { cloneProducts } from './steps/05-products.js'
-import { cloneSkus } from './steps/06-skus.js'
-import { cloneImages } from './steps/07-images.js'
-import { cloneSpecValues } from './steps/08-spec-values.js'
-import { clonePrices } from './steps/09-prices.js'
-import { cloneStock } from './steps/10-stock.js'
-import { cloneCollections } from './steps/11-collections.js'
+import { discoverCatalog } from './discovery.js'
+import { cloneProducts } from './steps/01-products.js'
+import { cloneSkus } from './steps/02-skus.js'
+import { cloneSpecValues } from './steps/03-spec-values.js'
 import type { EmitFn, VtexCredentials } from './types.js'
 
 export interface RunCloneOptions {
-  categoryIds?: number[]
+  // reserved for future limits/filters
 }
 
 export async function runClone(
@@ -22,34 +14,35 @@ export async function runClone(
   target: VtexCredentials,
   selectedSteps: string[],
   emit: EmitFn,
-  options: RunCloneOptions = {},
+  _options: RunCloneOptions = {},
 ): Promise<void> {
   const sourceClient = new VtexClient(source)
   const targetClient = new VtexClient(target)
-  const idMap = new IdMap()
 
   const should = (step: string) => selectedSteps.includes(step)
-  const categoryIds = options.categoryIds ?? []
 
   try {
-    if (should('categories'))
-      await cloneCategories(sourceClient, targetClient, idMap, emit, categoryIds)
-    if (should('brands')) await cloneBrands(sourceClient, targetClient, idMap, emit)
-    if (should('trade-policies')) await cloneTradePolicies(sourceClient, targetClient, idMap, emit)
-    if (should('specifications')) await cloneSpecifications(sourceClient, targetClient, idMap, emit)
+    // Discovery is mandatory because every step depends on the catalog snapshot.
+    const catalog = await discoverCatalog(sourceClient, emit)
 
     const productMappings = should('products')
-      ? await cloneProducts(sourceClient, targetClient, idMap, emit)
+      ? await cloneProducts(sourceClient, targetClient, emit, catalog)
       : []
 
-    if (should('skus')) await cloneSkus(sourceClient, targetClient, idMap, emit, productMappings)
-    if (should('images')) await cloneImages(sourceClient, targetClient, idMap, emit, productMappings)
-    if (should('spec-values')) await cloneSpecValues(sourceClient, targetClient, idMap, emit, productMappings)
-    if (should('prices')) await clonePrices(sourceClient, targetClient, idMap, emit, productMappings)
-    if (should('stock')) await cloneStock(sourceClient, targetClient, idMap, emit, productMappings)
-    if (should('collections')) await cloneCollections(sourceClient, targetClient, idMap, emit)
+    const skuMappings = should('skus')
+      ? await cloneSkus(targetClient, emit, catalog, productMappings)
+      : []
 
-    emit({ type: 'complete', summary: idMap.summary() })
+    if (should('spec-values'))
+      await cloneSpecValues(targetClient, emit, catalog, productMappings, skuMappings)
+
+    emit({
+      type: 'complete',
+      summary: {
+        products: productMappings.length,
+        skus: skuMappings.length,
+      },
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     emit({ type: 'error', message })

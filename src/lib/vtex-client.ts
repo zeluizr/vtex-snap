@@ -1,33 +1,14 @@
 import type {
-  Brand,
+  BrandDetail,
   BrandListItem,
-  Category,
-  CategoryTreeNode,
-  Collection,
-  CreateBrand,
-  CreateCategory,
-  CreateCollection,
+  CategoryWithTreePath,
   CreateProduct,
   CreateSku,
-  CreateSkuImage,
-  CreateSpecField,
-  CreateSpecGroup,
-  Inventory,
-  Price,
   Product,
-  ProductAndSkuIds,
-  ProductSpec,
-  SetPrice,
-  SetProductSpec,
-  SetSkuSpec,
+  SetProductSpecValue,
+  SetSkuSpecValue,
   Sku,
-  SkuImage,
-  SkuSpec,
-  SpecField,
-  SpecGroup,
-  TradePolicy,
-  UpdateInventory,
-  Warehouse,
+  SkuContext,
 } from '../workers/types.js'
 import { throttle } from './throttle.js'
 
@@ -39,6 +20,10 @@ interface VtexClientConfig {
 
 const REQUEST_TIMEOUT_MS = 30000
 const MAX_RETRIES = 3
+
+export function isConflict(error: unknown): boolean {
+  return error instanceof Error && error.message.includes('HTTP 409')
+}
 
 export class VtexClient {
   private readonly accountName: string
@@ -61,14 +46,6 @@ export class VtexClient {
     return `https://${this.accountName}.vtexcommercestable.com.br/api/catalog_system${path}`
   }
 
-  private pricingUrl(path: string): string {
-    return `https://api.vtex.com/${this.accountName}/pricing${path}`
-  }
-
-  private logisticsUrl(path: string): string {
-    return `https://${this.accountName}.vtexcommercestable.com.br/api/logistics${path}`
-  }
-
   private async request<T>(
     url: string,
     options: RequestInit = {},
@@ -87,14 +64,28 @@ export class VtexClient {
           headers: { ...this.headers, ...options.headers },
           signal: controller.signal,
         })
+      } catch (error) {
+        if (retries > 0) {
+          const waitMs = (MAX_RETRIES - retries + 1) * 1000
+          await new Promise((resolve) => setTimeout(resolve, waitMs))
+          return this.request<T>(url, options, retries - 1)
+        }
+        throw error
       } finally {
         clearTimeout(timeoutId)
       }
 
       if (response.status === 429 && retries > 0) {
         const retryAfter = response.headers.get('Retry-After')
-        const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000
-        console.warn(`[vtex-client] 429 rate limit hit for ${url}, waiting ${waitMs}ms`)
+        const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 30000
+        // Pause every other in-flight + future request so we don't immediately retrigger.
+        throttle.cooldown(waitMs)
+        await new Promise((resolve) => setTimeout(resolve, waitMs))
+        return this.request<T>(url, options, retries - 1)
+      }
+
+      if ((response.status === 502 || response.status === 503 || response.status === 504) && retries > 0) {
+        const waitMs = (MAX_RETRIES - retries + 1) * 2000
         await new Promise((resolve) => setTimeout(resolve, waitMs))
         return this.request<T>(url, options, retries - 1)
       }
@@ -114,131 +105,41 @@ export class VtexClient {
     }
   }
 
-  // Catalog — Categories
+  // Preflight (lightweight auth check)
 
-  async getCategoryTree(levels: number = 3): Promise<CategoryTreeNode[]> {
-    return this.request<CategoryTreeNode[]>(
-      this.catalogSystemUrl(`/pvt/category/tree/${levels}`),
+  async getBrands(): Promise<BrandListItem[]> {
+    return this.request<BrandListItem[]>(this.catalogSystemUrl('/pvt/brand/list'))
+  }
+
+  // Categories — only used to resolve TreePath for product cloning
+
+  async getCategoryWithTreePath(id: number): Promise<CategoryWithTreePath> {
+    return this.request<CategoryWithTreePath>(
+      this.catalogUrl(`/pvt/category/${id}?includeTreePath=true`),
     )
   }
 
-  async getCategoryById(id: number): Promise<Category> {
-    return this.request<Category>(this.catalogUrl(`/pvt/category/${id}`))
+  // Brands — only used to resolve brand name for product cloning
+
+  async getBrand(id: number): Promise<BrandDetail> {
+    return this.request<BrandDetail>(this.catalogSystemUrl(`/pvt/brand/${id}`))
   }
 
-  async getCategoryByIdSafe(id: number): Promise<Category | null> {
+  // Products
+
+  async getProduct(productId: number): Promise<Product> {
+    return this.request<Product>(this.catalogUrl(`/pvt/product/${productId}`))
+  }
+
+  async getProductSafe(productId: number): Promise<Product | null> {
     try {
-      return await this.getCategoryById(id)
+      return await this.getProduct(productId)
     } catch (error) {
       if (error instanceof Error && error.message.includes('HTTP 404')) {
         return null
       }
       throw error
     }
-  }
-
-  async createCategory(data: CreateCategory): Promise<Category> {
-    return this.request<Category>(this.catalogUrl('/pvt/category'), {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  // Catalog — Brands
-
-  async getBrands(): Promise<BrandListItem[]> {
-    return this.request<BrandListItem[]>(this.catalogSystemUrl('/pvt/brand/list'))
-  }
-
-  async createBrand(data: CreateBrand): Promise<Brand> {
-    return this.request<Brand>(this.catalogUrl('/pvt/brand'), {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  // Trade Policies
-
-  async getTradePolicies(): Promise<TradePolicy[]> {
-    return this.request<TradePolicy[]>(this.catalogSystemUrl('/pvt/saleschannel/list'))
-  }
-
-  // Specifications
-
-  async getSpecificationGroups(categoryId: number): Promise<SpecGroup[]> {
-    return this.request<SpecGroup[]>(
-      this.catalogUrl(`/pvt/specificationgroup/listByCategoryId/${categoryId}`),
-    )
-  }
-
-  async createSpecificationGroup(data: CreateSpecGroup): Promise<SpecGroup> {
-    return this.request<SpecGroup>(this.catalogUrl('/pvt/specificationgroup'), {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async getSpecificationFields(categoryId: number): Promise<SpecField[]> {
-    return this.request<SpecField[]>(
-      this.catalogUrl(`/pvt/specificationfield/listByCategoryId/${categoryId}`),
-    )
-  }
-
-  async createSpecificationField(data: CreateSpecField): Promise<SpecField> {
-    return this.request<SpecField>(this.catalogUrl('/pvt/specificationfield'), {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async getProductSpecifications(productId: number): Promise<ProductSpec[]> {
-    return this.request<ProductSpec[]>(
-      this.catalogUrl(`/pvt/product/${productId}/specification`),
-    )
-  }
-
-  async setProductSpecification(productId: number, data: SetProductSpec): Promise<void> {
-    return this.request<void>(
-      this.catalogUrl(`/pvt/product/${productId}/specification`),
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-      },
-    )
-  }
-
-  async getSkuSpecifications(skuId: number): Promise<SkuSpec[]> {
-    return this.request<SkuSpec[]>(
-      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}/specification`),
-    )
-  }
-
-  async setSkuSpecification(skuId: number, data: SetSkuSpec): Promise<void> {
-    return this.request<void>(
-      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}/specification`),
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-      },
-    )
-  }
-
-  // Products
-
-  async getProductAndSkuIds(
-    categoryId: number,
-    from: number,
-    to: number,
-  ): Promise<ProductAndSkuIds> {
-    return this.request<ProductAndSkuIds>(
-      this.catalogSystemUrl(
-        `/pvt/products/GetProductAndSkuIds?categoryId=${categoryId}&_from=${from}&_to=${to}`,
-      ),
-    )
-  }
-
-  async getProduct(productId: number): Promise<Product> {
-    return this.request<Product>(this.catalogUrl(`/pvt/product/${productId}`))
   }
 
   async createProduct(data: CreateProduct): Promise<Product> {
@@ -248,11 +149,59 @@ export class VtexClient {
     })
   }
 
+  async updateProduct(productId: number, data: CreateProduct): Promise<Product> {
+    return this.request<Product>(this.catalogUrl(`/pvt/product/${productId}`), {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Upsert: create on destination; if VTEX rejects with 409 (Id already exists), update instead.
+  async upsertProduct(
+    data: CreateProduct,
+  ): Promise<{ product: Product; mode: 'created' | 'updated' }> {
+    try {
+      const product = await this.createProduct(data)
+      return { product, mode: 'created' }
+    } catch (error) {
+      if (isConflict(error) && data.Id !== undefined) {
+        const product = await this.updateProduct(data.Id, data)
+        return { product, mode: 'updated' }
+      }
+      throw error
+    }
+  }
+
   // SKUs
 
-  async getSku(skuId: number): Promise<Sku> {
-    return this.request<Sku>(
-      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}`),
+  async getSkuContext(skuId: number): Promise<SkuContext> {
+    return this.request<SkuContext>(
+      this.catalogSystemUrl(`/pvt/sku/stockkeepingunitbyid/${skuId}`),
+    )
+  }
+
+  async getSkuContextSafe(skuId: number): Promise<SkuContext | null> {
+    try {
+      return await this.getSkuContext(skuId)
+    } catch (error) {
+      if (error instanceof Error) {
+        const msg = error.message
+        if (
+          msg.includes('HTTP 404') ||
+          msg.includes('HTTP 502') ||
+          msg.includes('HTTP 503') ||
+          msg.includes('HTTP 504')
+        ) {
+          return null
+        }
+      }
+      throw error
+    }
+  }
+
+  async getSkuIds(page: number, pageSize: number): Promise<number[]> {
+    return this.request<number[]>(
+      this.catalogSystemUrl(`/pvt/sku/stockkeepingunitids?page=${page}&pagesize=${pageSize}`),
     )
   }
 
@@ -263,73 +212,38 @@ export class VtexClient {
     })
   }
 
-  async activateSku(skuId: number): Promise<void> {
-    return this.request<void>(
-      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}`),
-      {
-        method: 'PUT',
-        body: JSON.stringify({ IsActive: true }),
-      },
-    )
-  }
-
-  // SKU Images
-
-  async getSkuImages(skuId: number): Promise<SkuImage[]> {
-    return this.request<SkuImage[]>(
-      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}/file`),
-    )
-  }
-
-  async createSkuImage(skuId: number, data: CreateSkuImage): Promise<SkuImage> {
-    return this.request<SkuImage>(
-      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}/file`),
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-      },
-    )
-  }
-
-  // Pricing
-
-  async getPrice(skuId: number): Promise<Price | null> {
-    try {
-      return await this.request<Price>(this.pricingUrl(`/prices/${skuId}`))
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('HTTP 404')) {
-        return null
-      }
-      throw error
-    }
-  }
-
-  async setPrice(skuId: number, data: SetPrice): Promise<void> {
-    return this.request<void>(this.pricingUrl(`/prices/${skuId}`), {
+  async updateSku(skuId: number, data: CreateSku): Promise<Sku> {
+    return this.request<Sku>(this.catalogUrl(`/pvt/stockkeepingunit/${skuId}`), {
       method: 'PUT',
       body: JSON.stringify(data),
     })
   }
 
-  // Logistics
-
-  async getWarehouses(): Promise<Warehouse[]> {
-    return this.request<Warehouse[]>(this.logisticsUrl('/pvt/configuration/warehouses'))
+  async upsertSku(data: CreateSku): Promise<{ sku: Sku; mode: 'created' | 'updated' }> {
+    try {
+      const sku = await this.createSku(data)
+      return { sku, mode: 'created' }
+    } catch (error) {
+      if (isConflict(error) && data.Id !== undefined) {
+        const sku = await this.updateSku(data.Id, data)
+        return { sku, mode: 'updated' }
+      }
+      throw error
+    }
   }
 
-  async getInventory(skuId: number, warehouseId: string): Promise<Inventory> {
-    return this.request<Inventory>(
-      this.logisticsUrl(`/pvt/inventory/skus/${skuId}/warehouses/${warehouseId}`),
-    )
+  async activateSku(skuId: number): Promise<void> {
+    return this.request<void>(this.catalogUrl(`/pvt/stockkeepingunit/${skuId}`), {
+      method: 'PUT',
+      body: JSON.stringify({ IsActive: true }),
+    })
   }
 
-  async updateInventory(
-    skuId: number,
-    warehouseId: string,
-    data: UpdateInventory,
-  ): Promise<void> {
+  // Specification values — auto-creates group + spec + values when not present
+
+  async setProductSpecValue(productId: number, data: SetProductSpecValue): Promise<void> {
     return this.request<void>(
-      this.logisticsUrl(`/pvt/inventory/skus/${skuId}/warehouses/${warehouseId}`),
+      this.catalogUrl(`/pvt/product/${productId}/specificationvalue`),
       {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -337,37 +251,12 @@ export class VtexClient {
     )
   }
 
-  // Collections
-
-  async getCollections(from: number, to: number): Promise<Collection[]> {
-    return this.request<Collection[]>(
-      this.catalogUrl(`/pvt/collection/search/${from}/${to}`),
-    )
-  }
-
-  async createCollection(data: CreateCollection): Promise<Collection> {
-    return this.request<Collection>(this.catalogUrl('/pvt/collection'), {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async getCollectionProducts(collectionId: number): Promise<number[]> {
-    interface CollectionProductsResponse {
-      Data: Array<{ SkuId: number }>
-    }
-    const response = await this.request<CollectionProductsResponse>(
-      this.catalogUrl(`/pvt/collection/${collectionId}/products`),
-    )
-    return response.Data.map((item) => item.SkuId)
-  }
-
-  async addSkuToCollection(collectionId: number, skuId: number): Promise<void> {
+  async setSkuSpecValue(skuId: number, data: SetSkuSpecValue): Promise<void> {
     return this.request<void>(
-      this.catalogUrl(`/pvt/collection/${collectionId}/products`),
+      this.catalogUrl(`/pvt/stockkeepingunit/${skuId}/specificationvalue`),
       {
-        method: 'POST',
-        body: JSON.stringify({ SkuId: skuId }),
+        method: 'PUT',
+        body: JSON.stringify(data),
       },
     )
   }

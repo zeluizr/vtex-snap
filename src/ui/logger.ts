@@ -1,16 +1,13 @@
 import pc from 'picocolors'
+import { t, type MessageKey } from '../i18n/index.js'
 import type { CloneEvent, CloneSummary } from '../workers/types.js'
 
 export function logEvent(event: CloneEvent): void {
   switch (event.type) {
     case 'step:start':
-      // handled by spinner
-      break
     case 'step:progress':
-      // handled by spinner text update — not printed to avoid flood
-      break
     case 'step:complete':
-      // handled by spinner success
+      // handled by spinner
       break
     case 'step:error':
       console.log(
@@ -20,36 +17,37 @@ export function logEvent(event: CloneEvent): void {
       break
     case 'complete':
       console.log('')
-      console.log(pc.bold(pc.green('  ✓ Clonagem concluída!')))
+      console.log(pc.bold(pc.green(t('logger.completed'))))
       console.log('')
       printSummary(event.summary)
       break
     case 'error':
       console.log('')
-      console.log(pc.bold(pc.red(`  ✗ Erro fatal: ${event.message}`)))
+      console.log(pc.bold(pc.red(t('logger.error.fatal', { msg: event.message }))))
       break
   }
 }
 
 function printSummary(summary: CloneSummary): void {
-  const labels: Record<string, string> = {
-    category: 'Categorias',
-    brand: 'Marcas',
-    product: 'Produtos',
-    sku: 'SKUs',
-    specGroup: 'Grupos de spec',
-    specField: 'Campos de spec',
-    collection: 'Coleções',
+  const labelKeys: Record<string, MessageKey> = {
+    category: 'logger.summary.label.category',
+    brand: 'logger.summary.label.brand',
+    product: 'logger.summary.label.product',
+    sku: 'logger.summary.label.sku',
+    specGroup: 'logger.summary.label.specGroup',
+    specField: 'logger.summary.label.specField',
+    collection: 'logger.summary.label.collection',
   }
 
   const entries = Object.entries(summary)
   if (entries.length === 0) return
 
-  const maxLabel = Math.max(...entries.map(([k]) => (labels[k] ?? k).length))
+  const labels = entries.map(([k]) => (labelKeys[k] ? t(labelKeys[k]) : k))
+  const maxLabel = Math.max(...labels.map((l) => l.length))
 
-  for (const [key, count] of entries) {
-    const label = (labels[key] ?? key).padEnd(maxLabel)
+  entries.forEach(([_, count], i) => {
+    const label = labels[i]!.padEnd(maxLabel)
     console.log(`  ${pc.dim(label)}  ${pc.bold(String(count))}`)
-  }
+  })
   console.log('')
 }
