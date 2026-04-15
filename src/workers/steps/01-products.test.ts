@@ -80,16 +80,18 @@ describe('cloneProducts', () => {
         .mockImplementation((id: number) => Promise.resolve(id === 2 ? null : makeProduct(id))),
       getCategoryWithTreePath: vi.fn().mockResolvedValue(makeCategory()),
     })
-    const createProduct = vi
+    const upsertProduct = vi
       .fn()
-      .mockImplementation((p: { Id: number }) => Promise.resolve(makeProduct(p.Id)))
-    const target = mockClient({ createProduct })
+      .mockImplementation((p: { Id: number }) =>
+        Promise.resolve({ product: makeProduct(p.Id), mode: 'created' as const }),
+      )
+    const target = mockClient({ upsertProduct })
     const emit: EmitFn = vi.fn()
 
     const mappings = await cloneProducts(source, target, emit, makeCatalog([1, 2, 3]))
 
     expect(source.getProductSafe).toHaveBeenCalledTimes(3)
-    expect(createProduct).toHaveBeenCalledTimes(2)
+    expect(upsertProduct).toHaveBeenCalledTimes(2)
     expect(mappings).toHaveLength(2)
   })
 
@@ -100,13 +102,15 @@ describe('cloneProducts', () => {
         .fn()
         .mockResolvedValue(makeCategory({ TreePath: ['Sports', 'Gear'] })),
     })
-    const createProduct = vi.fn().mockResolvedValue(makeProduct(7))
-    const target = mockClient({ createProduct })
+    const upsertProduct = vi
+      .fn()
+      .mockResolvedValue({ product: makeProduct(7), mode: 'created' as const })
+    const target = mockClient({ upsertProduct })
     const emit: EmitFn = vi.fn()
 
     await cloneProducts(source, target, emit, makeCatalog([7], 'Nike'))
 
-    expect(createProduct).toHaveBeenCalledWith(
+    expect(upsertProduct).toHaveBeenCalledWith(
       expect.objectContaining({
         Id: 7,
         CategoryPath: 'Sports/Gear',
@@ -123,10 +127,12 @@ describe('cloneProducts', () => {
         .mockImplementation((id: number) => Promise.resolve(makeProduct(id))),
       getCategoryWithTreePath,
     })
-    const createProduct = vi
+    const upsertProduct = vi
       .fn()
-      .mockImplementation((p: { Id: number }) => Promise.resolve(makeProduct(p.Id)))
-    const target = mockClient({ createProduct })
+      .mockImplementation((p: { Id: number }) =>
+        Promise.resolve({ product: makeProduct(p.Id), mode: 'created' as const }),
+      )
+    const target = mockClient({ upsertProduct })
     const emit: EmitFn = vi.fn()
 
     await cloneProducts(source, target, emit, makeCatalog([1, 2, 3, 4, 5]))
@@ -142,13 +148,15 @@ describe('cloneProducts', () => {
         .fn()
         .mockResolvedValue(makeCategory({ TreePath: null, Name: 'Solo' })),
     })
-    const createProduct = vi.fn().mockResolvedValue(makeProduct(1))
-    const target = mockClient({ createProduct })
+    const upsertProduct = vi
+      .fn()
+      .mockResolvedValue({ product: makeProduct(1), mode: 'created' as const })
+    const target = mockClient({ upsertProduct })
     const emit: EmitFn = vi.fn()
 
     await cloneProducts(source, target, emit, makeCatalog([1]))
 
-    expect(createProduct).toHaveBeenCalledWith(expect.objectContaining({ CategoryPath: 'Solo' }))
+    expect(upsertProduct).toHaveBeenCalledWith(expect.objectContaining({ CategoryPath: 'Solo' }))
   })
 
   it('emits step:error and continues when a product fails', async () => {
@@ -158,11 +166,11 @@ describe('cloneProducts', () => {
         .mockImplementation((id: number) => Promise.resolve(makeProduct(id))),
       getCategoryWithTreePath: vi.fn().mockResolvedValue(makeCategory()),
     })
-    const createProduct = vi
+    const upsertProduct = vi
       .fn()
       .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValueOnce(makeProduct(2))
-    const target = mockClient({ createProduct })
+      .mockResolvedValueOnce({ product: makeProduct(2), mode: 'created' as const })
+    const target = mockClient({ upsertProduct })
     const events: Parameters<EmitFn>[0][] = []
     const emit: EmitFn = (e) => events.push(e)
 
@@ -181,10 +189,12 @@ describe('cloneProducts', () => {
         .mockImplementation((id: number) => Promise.resolve(makeProduct(id))),
       getCategoryWithTreePath: vi.fn().mockResolvedValue(makeCategory()),
     })
-    const createProduct = vi
+    const upsertProduct = vi
       .fn()
-      .mockImplementation((p: { Id: number }) => Promise.resolve(makeProduct(p.Id)))
-    const target = mockClient({ createProduct })
+      .mockImplementation((p: { Id: number }) =>
+        Promise.resolve({ product: makeProduct(p.Id), mode: 'created' as const }),
+      )
+    const target = mockClient({ upsertProduct })
     const events: Parameters<EmitFn>[0][] = []
     const emit: EmitFn = (e) => events.push(e)
 

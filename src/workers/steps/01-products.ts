@@ -14,7 +14,6 @@ export async function cloneProducts(
 ): Promise<ProductSkuMapping[]> {
   const step = 'products'
   const total = catalog.size
-  console.log(`[step:products] cloning ${total} products`)
 
   emit({ type: 'step:start', step, total })
 
@@ -51,7 +50,7 @@ export async function cloneProducts(
     try {
       const categoryPath = await resolveCategoryPath(product.CategoryId)
 
-      const newProduct = await target.createProduct({
+      const { product: newProduct, mode } = await target.upsertProduct({
         Id: product.Id,
         Name: product.Name,
         CategoryPath: categoryPath,
@@ -81,12 +80,11 @@ export async function cloneProducts(
         step,
         current: scanned,
         total,
-        detail: `${product.Id} → ${newProduct.Id} ${product.Name}`,
+        detail: `${mode} ${product.Id} → ${newProduct.Id}`,
       })
     } catch (error) {
       errors++
       const message = error instanceof Error ? error.message : String(error)
-      console.error(`[step:products] error cloning product ${product.Id}: ${message}`)
       emit({
         type: 'step:error',
         step,
@@ -97,6 +95,5 @@ export async function cloneProducts(
   }
 
   emit({ type: 'step:complete', step, created, errors })
-  console.log(`[step:products] done: created=${created}, errors=${errors}`)
   return mappings
 }

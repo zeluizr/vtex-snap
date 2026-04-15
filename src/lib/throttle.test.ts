@@ -32,11 +32,11 @@ describe('Throttle', () => {
     expect(() => t.release()).not.toThrow()
   })
 
-  it('queues 6th request when MAX_CONCURRENT (5) is busy; unblocks after release()', async () => {
+  it('queues next request when MAX_CONCURRENT (3) is busy; unblocks after release()', async () => {
     const t = new Throttle()
 
-    // Acquire 5 slots (MAX_CONCURRENT)
-    for (let i = 0; i < 5; i++) {
+    // Acquire 3 slots (MAX_CONCURRENT)
+    for (let i = 0; i < 3; i++) {
       await t.acquire()
     }
 
@@ -62,8 +62,8 @@ describe('Throttle', () => {
   it('replenishes tokens after time advance', async () => {
     const t = new Throttle()
 
-    // Exhaust all 400 tokens sequentially (acquire + release to avoid concurrent limit)
-    for (let i = 0; i < 400; i++) {
+    // Exhaust all 240 tokens sequentially (acquire + release to avoid concurrent limit)
+    for (let i = 0; i < 240; i++) {
       await t.acquire()
       t.release()
     }
@@ -77,9 +77,26 @@ describe('Throttle', () => {
     await Promise.resolve()
     expect(resolved).toBe(false)
 
-    // Advance time past the refill delay (60000/400 = 150ms per token)
-    await vi.advanceTimersByTimeAsync(160)
+    // Advance time past the refill delay (60000/240 = 250ms per token)
+    await vi.advanceTimersByTimeAsync(260)
 
+    expect(resolved).toBe(true)
+  })
+
+  it('cooldown(ms) blocks new acquires until the cooldown elapses', async () => {
+    const t = new Throttle()
+
+    t.cooldown(2000)
+
+    let resolved = false
+    t.acquire().then(() => {
+      resolved = true
+    })
+
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(resolved).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1500) // total 2500 + token refill
     expect(resolved).toBe(true)
   })
 })

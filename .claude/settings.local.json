@@ -14,7 +14,8 @@
       "Bash(git remote:*)",
       "Bash(gh repo:*)",
       "Bash(pnpm typecheck:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -19,7 +19,7 @@
 
 | # | Recurso |
 |---|---------|
-| 1 | Productos (por rango de IDs) — categoría y marca creadas automáticamente |
+| 1 | Productos — categoría y marca creadas automáticamente |
 | 2 | SKUs |
 | 3 | Valores de Especificaciones — grupo y campo creados automáticamente |
 
@@ -55,9 +55,23 @@ Solicita las credenciales de las tiendas de origen y destino (account name + app
 vtex-snap start
 ```
 
-Seleccione todos los pasos o elija pasos específicos. Se le pedirá un rango de IDs de producto (`productIdFrom..productIdTo`) — los IDs inexistentes (404) se ignoran automáticamente.
+Seleccione todos los pasos o elija pasos específicos. La clonación es **total y automática**: una fase inicial de descubrimiento pagina todos los SKU IDs de la tienda origen (`/pvt/sku/stockkeepingunitids`) y cachea el contexto de cada uno — sin prompts de rango, sin llamadas desperdiciadas en IDs vacíos.
 
 `vtex-snap` validará la conectividad antes de comenzar.
+
+---
+
+## Idioma
+
+El CLI habla **portugués, español e inglés**. Detecta el idioma automáticamente desde el locale del SO; puedes forzarlo de tres formas (en orden de precedencia):
+
+```bash
+vtex-snap start --lang pt           # flag CLI (mayor prioridad)
+VTEX_SNAP_LANG=es vtex-snap start   # variable de entorno
+vtex-snap init                      # elige el idioma y queda persistido
+```
+
+Idiomas soportados: `pt`, `es`, `en`. Fallback: `en`.
 
 ---
 

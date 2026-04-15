@@ -8,9 +8,7 @@ export async function discoverCatalog(
   emit: EmitFn,
 ): Promise<DiscoveredCatalog> {
   const step = 'discovery'
-  console.log('[step:discovery] enumerating SKU IDs')
 
-  // Collect all SKU IDs first so we can emit a meaningful total when fetching contexts.
   const skuIds: number[] = []
   let page = 1
   while (true) {
@@ -21,7 +19,6 @@ export async function discoverCatalog(
     page++
   }
 
-  console.log(`[step:discovery] found ${skuIds.length} SKU IDs across ${page} page(s)`)
   emit({ type: 'step:start', step, total: skuIds.length })
 
   const catalog: DiscoveredCatalog = new Map()
@@ -70,8 +67,5 @@ export async function discoverCatalog(
     created: catalog.size,
     errors: skipped,
   })
-  console.log(
-    `[step:discovery] done: ${catalog.size} produtos / ${scanned - skipped} SKUs (skip=${skipped})`,
-  )
   return catalog
 }

@@ -9,7 +9,8 @@ Guía para el agente IA sobre este proyecto.
 - Paquete npm: `vtex-snap`
 - Repositorio: `zeluizr/vtex-catalog-cloner`
 - Sitio: https://vtexsnap.zeluizr.com
-- Idioma de todo el contenido visible al usuario: **español**
+- Idioma del CLI (mensajes en runtime): **i18n con PT / ES / EN** vía `src/i18n/`. Usar `t()` y `resolveLang()`. Fallback: `en`.
+- Idioma de docs del proyecto (README, CHANGELOG, templates): **español**.
 
 ## Stack
 

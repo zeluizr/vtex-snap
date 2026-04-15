@@ -22,7 +22,6 @@ export async function cloneSpecValues(
   skuMappings: SkuMapping[],
 ): Promise<void> {
   const step = 'spec-values'
-  console.log('[step:spec-values] starting')
 
   // Build SKU lookup table once: oldSkuId → context (already fetched during discovery).
   const skuContextById = new Map<number, SkuContextSpec[]>()
@@ -51,10 +50,13 @@ export async function cloneSpecValues(
         created++
       } catch (error) {
         errors++
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(
-          `[step:spec-values] product ${oldProductId} spec "${spec.FieldName}": ${message}`,
-        )
+        const detail = error instanceof Error ? error.message : String(error)
+        emit({
+          type: 'step:error',
+          step,
+          message: `product ${oldProductId} spec "${spec.FieldName}"`,
+          detail,
+        })
       }
     }
 
@@ -78,8 +80,13 @@ export async function cloneSpecValues(
         created++
       } catch (error) {
         errors++
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(`[step:spec-values] sku ${oldSkuId} spec "${spec.FieldName}": ${message}`)
+        const detail = error instanceof Error ? error.message : String(error)
+        emit({
+          type: 'step:error',
+          step,
+          message: `sku ${oldSkuId} spec "${spec.FieldName}"`,
+          detail,
+        })
       }
     }
 
@@ -93,5 +100,4 @@ export async function cloneSpecValues(
   }
 
   emit({ type: 'step:complete', step, created, errors })
-  console.log(`[step:spec-values] done: created=${created}, errors=${errors}`)
 }

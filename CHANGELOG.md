@@ -1,5 +1,75 @@
 # Changelog
 
+## v2.8.0 — 2026-04-15
+
+### Dashboard multi-barra (estilo Docker pull)
+
+El spinner de una sola línea fue reemplazado por un dashboard que muestra **todas las etapas a la vez** con barra de progreso, contador y ETA:
+
+```
+  ⠹  Discovery       ━━━━━━━━━━━━━━━━━━━━────  9668/9668  eta 12s
+  ✓  Products        ━━━━━━━━━━━━━━━━━━━━━━━━  listo 890
+  ·  SKUs            ────────────────────────  pendiente
+  ·  Spec Values     ────────────────────────  pendiente
+  ! products: Failed to clone product 12345
+```
+
+- Se redibuja en su lugar usando ANSI cursor controls (`\x1b[<n>F` + `\x1b[0J`).
+- Spinner anima a 120 ms incluso sin eventos (útil durante cooldowns de 429).
+- Línea inferior muestra el último warning/error (truncado).
+
+### Clonación total automática
+
+- Eliminado el prompt de selección de etapas. **Siempre se clonan todas las 3 etapas + descubrimiento**.
+- Mensaje de confirmación nuevo: "Clonar tudo de X → Y".
+
+### 409 → update (upsert)
+
+Cuando el destino ya tiene la entidad con el mismo ID (caso típico al re-ejecutar la clonación), VTEX devuelve **HTTP 409**. Antes esto era un error fatal; ahora cae automáticamente a un PUT:
+
+- Producto: POST `/pvt/product` → 409 → PUT `/pvt/product/{id}`.
+- SKU: POST `/pvt/stockkeepingunit` → 409 → PUT `/pvt/stockkeepingunit/{id}`.
+- Spec values ya usaban PUT (upsert nativo).
+
+Implementado vía `upsertProduct()` / `upsertSku()` en `vtex-client.ts`. Cada `step:progress` ahora rotula `created` o `updated`.
+
+### Otros ajustes
+
+- Removidos los `console.log/error` de los workers — el dashboard captura todo.
+- Mensaje de cooldown de 429 fue removido de stderr (rompía el dashboard); el throttle global cuida la pausa silenciosamente.
+
+---
+
+## v2.7.0 — 2026-04-15
+
+### Internacionalización (PT / ES / EN)
+
+El CLI ahora habla tres idiomas. La resolución sigue una cadena de precedencia:
+
+1. Flag `--lang <pt|es|en>`
+2. Variable de entorno `VTEX_SNAP_LANG`
+3. Preferencia guardada en `~/.config/vtex-snap/config.json` (campo `lang`)
+4. Locale del SO (`Intl.DateTimeFormat().resolvedOptions().locale`)
+5. Fallback: `en`
+
+### `vtex-snap init`
+
+- Nuevo prompt al inicio: idioma del CLI (Auto-detectar / Português / Español / English).
+- Si el usuario elige un idioma específico, queda persistido en `config.json` (`"lang": "pt"`).
+- "Auto-detectar" no escribe el campo, así el SO/env siguen mandando.
+
+### Módulo nuevo
+
+- `src/i18n/` — `t(key, params)`, `setLang`, `resolveLang`, locales planos en `locales/{pt,es,en}.ts`.
+- Sin dependencias adicionales: usa `Intl` nativo y dictionarios tipados (`MessageKey`).
+
+### Mensajes traducidos
+
+- `init.ts`, `start.ts`, `ui/logger.ts`, `ui/progress.ts` — todos los textos visibles ahora pasan por `t()`.
+- Banner ASCII y nombres técnicos (`account name`, `app key`, `SKU`) permanecen sin traducir.
+
+---
+
 ## v2.6.0 — 2026-04-15
 
 ### Descoberta automática via SKU IDs

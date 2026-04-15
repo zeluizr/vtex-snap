@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import type { SupportedLang } from '../i18n/index.js'
 
 export interface CliConfig {
   source: {
@@ -15,6 +16,7 @@ export interface CliConfig {
     appToken: string
     sellerId: string
   }
+  lang?: SupportedLang
 }
 
 export function getConfigPath(): string {

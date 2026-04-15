@@ -1,20 +1,7 @@
 import type { Ora } from 'ora'
 import pc from 'picocolors'
+import { t, type MessageKey } from '../i18n/index.js'
 import type { CloneEvent } from '../workers/types.js'
-
-const STEP_LABELS: Record<string, string> = {
-  categories: 'Categorias',
-  brands: 'Marcas',
-  'trade-policies': 'Trade Policies',
-  specifications: 'Especificações',
-  products: 'Produtos',
-  skus: 'SKUs',
-  images: 'Imagens',
-  'spec-values': 'Valores de Spec',
-  prices: 'Preços',
-  stock: 'Estoque',
-  collections: 'Coleções',
-}
 
 const STEP_ORDER = [
   'categories',
@@ -30,20 +17,25 @@ const STEP_ORDER = [
   'collections',
 ]
 
+function stepLabel(step: string): string {
+  const key = `progress.step.${step}` as MessageKey
+  return t(key)
+}
+
 export function updateSpinner(spinner: Ora, event: CloneEvent): void {
   switch (event.type) {
     case 'step:start': {
       const idx = STEP_ORDER.indexOf(event.step) + 1
-      const label = STEP_LABELS[event.step] ?? event.step
+      const label = stepLabel(event.step)
       spinner.start(
         pc.cyan(`[${idx}/${STEP_ORDER.length}] ${label}`) +
-        pc.dim(` — ${event.total} itens`),
+        pc.dim(` — ${event.total} ${t('progress.items')}`),
       )
       break
     }
     case 'step:progress': {
       const idx = STEP_ORDER.indexOf(event.step) + 1
-      const label = STEP_LABELS[event.step] ?? event.step
+      const label = stepLabel(event.step)
       const pct = Math.round((event.current / event.total) * 100)
       spinner.text =
         pc.cyan(`[${idx}/${STEP_ORDER.length}] ${label}`) +
@@ -52,11 +44,12 @@ export function updateSpinner(spinner: Ora, event: CloneEvent): void {
     }
     case 'step:complete': {
       const idx = STEP_ORDER.indexOf(event.step) + 1
-      const label = STEP_LABELS[event.step] ?? event.step
-      const errPart = event.errors > 0 ? pc.yellow(`, ${event.errors} erros`) : ''
+      const label = stepLabel(event.step)
+      const errPart =
+        event.errors > 0 ? pc.yellow(`, ${t('progress.errors', { n: event.errors })}`) : ''
       spinner.succeed(
         pc.green(`[${idx}/${STEP_ORDER.length}] ${label}`) +
-        pc.dim(` — ${event.created} criados`) +
+        pc.dim(` — ${t('progress.created', { n: event.created })}`) +
         errPart,
       )
       break

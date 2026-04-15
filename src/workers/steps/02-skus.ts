@@ -20,7 +20,6 @@ export async function cloneSkus(
     (sum, m) => sum + (catalog.get(m.oldProductId)?.skus.length ?? 0),
     0,
   )
-  console.log(`[step:skus] cloning ${totalSkus} SKUs`)
 
   emit({ type: 'step:start', step, total: totalSkus })
 
@@ -37,7 +36,7 @@ export async function cloneSkus(
     for (const { oldSkuId, context } of entry.skus) {
       current++
       try {
-        const newSku = await target.createSku({
+        const { sku: newSku, mode } = await target.upsertSku({
           Id: context.Id,
           ProductId: newProductId,
           IsActive: false,
@@ -71,9 +70,8 @@ export async function cloneSkus(
         if (context.IsActive) {
           try {
             await target.activateSku(newSku.Id)
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            console.warn(`[step:skus] could not activate SKU ${newSku.Id}: ${message}`)
+          } catch {
+            // Activation is best-effort — destination may forbid it for items without stock.
           }
         }
 
@@ -82,12 +80,11 @@ export async function cloneSkus(
           step,
           current,
           total: totalSkus,
-          detail: `SKU ${oldSkuId} → ${newSku.Id}`,
+          detail: `${mode} SKU ${oldSkuId} → ${newSku.Id}`,
         })
       } catch (error) {
         errors++
         const message = error instanceof Error ? error.message : String(error)
-        console.error(`[step:skus] error cloning SKU ${oldSkuId}: ${message}`)
         emit({
           type: 'step:error',
           step,
@@ -99,6 +96,5 @@ export async function cloneSkus(
   }
 
   emit({ type: 'step:complete', step, created, errors })
-  console.log(`[step:skus] done: created=${created}, errors=${errors}`)
   return mappings
 }
