@@ -16,19 +16,19 @@ Guía para el agente IA sobre este proyecto.
 
 - **Runtime:** Node.js >= 20
 - **Lenguaje:** TypeScript (ESM, `"type": "module"`)
-- **Package manager:** pnpm
-- **Tests:** Vitest
+- **Package manager:** npm
+- **Tests:** Vitest (sin coverage)
 - **CLI framework:** commander + @clack/prompts + ora + picocolors
 - **Build:** `tsc` + shebang injection + `chmod +x`
 
 ## Comandos
 
 ```bash
-pnpm build        # compila TypeScript → dist/
-pnpm test         # ejecuta tests (Vitest)
-pnpm test:watch   # tests en modo watch
-pnpm typecheck    # solo verificación de tipos
-pnpm dev          # tsc en modo watch
+npm run build      # compila TypeScript → dist/
+npm test           # ejecuta tests (Vitest)
+npm run test:watch # tests en modo watch
+npm run typecheck  # solo verificación de tipos
+npm run dev        # tsc en modo watch
 ```
 
 ## Estructura

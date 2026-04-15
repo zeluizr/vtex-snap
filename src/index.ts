@@ -21,7 +21,7 @@ const program = new Command()
 program
   .name('vtex-snap')
   .description('Clone a complete VTEX store catalog to another VTEX store')
-  .version('2.9.1')
+  .version('2.9.2')
   .option('--lang <lang>', 'CLI language: pt | es | en')
   .hook('preAction', async (thisCommand) => {
     const opts = thisCommand.optsWithGlobals<{ lang?: string }>()

@@ -12,6 +12,6 @@
 
 ## Checklist
 
-- [ ] Pruebas pasando (`pnpm test`)
-- [ ] Build sin errores (`pnpm build`)
+- [ ] Pruebas pasando (`npm test`)
+- [ ] Build sin errores (`npm run build`)
 - [ ] El código sigue el estilo del proyecto

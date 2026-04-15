@@ -31,8 +31,6 @@
 
 ```bash
 npm install -g vtex-snap
-# o
-pnpm add -g vtex-snap
 ```
 
 **Requisitos:** Node.js >= 20
