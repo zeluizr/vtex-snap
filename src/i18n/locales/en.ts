@@ -78,7 +78,23 @@ export const en = {
   'progress.eta': 'eta {time}',
   'progress.cancelHint': 'press q or Esc to cancel',
   'progress.cancelled': 'Cancelled by user.',
-  'start.confirmAll': 'Clone everything from {source} → {target}? (3 steps + discovery, conflicts upgrade to PUT)',
+
+  // config command
+  'config.intro': 'VTEX Catalog Cloner — Add profile',
+  'config.outro': 'Profile {name} saved. Run {cmd} to start cloning.',
+  'config.testFailed': 'Validation failed: {msg}. Save anyway?',
+  'config.testing': 'Testing credentials...',
+  'config.ok': '✓ Credentials valid',
+  'config.saved': 'Profile saved at {path}',
+
+  // init runner
+  'init.run.intro': 'VTEX Catalog Cloner',
+  'init.run.needMore': 'You have {count} profile(s). At least 2 are required (source + target).',
+  'init.run.addNow': 'Add a profile now?',
+  'init.run.useConfig': 'Use {cmd} to add profiles.',
+  'init.run.pickSource': 'Source store',
+  'init.run.pickTarget': 'Target store',
+  'start.confirmAll': 'Clone everything from {source} → {target}?',
 } as const
 
 export type MessageKey = keyof typeof en

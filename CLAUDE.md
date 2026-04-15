@@ -37,8 +37,8 @@ pnpm dev          # tsc en modo watch
 src/
   index.ts                  # punto de entrada, define comandos CLI
   commands/
-    init.ts                 # vtex-snap init — configura credenciales
-    start.ts                # vtex-snap start — inicia clonación
+    init.ts                 # vtex-snap init — inicia clonación (onboarding inline)
+    config.ts               # vtex-snap config — agrega un perfil de tienda
   config/
     store.ts                # lectura/escritura de ~/.config/vtex-snap/
   lib/
@@ -46,21 +46,18 @@ src/
     id-map.ts               # mapeo de IDs origen → destino
     throttle.ts             # control de rate limit
   workers/
-    orchestrator.ts         # ejecuta los pasos en orden
+    orchestrator.ts         # ejecuta las 3 etapas + descubrimiento
+    discovery.ts            # pagina SKU IDs y arma el DiscoveredCatalog
     types.ts                # tipos compartidos (CloneEvent, etc.)
     steps/
-      01-categories.ts
-      02-brands.ts
-      03-trade-policies.ts
-      04-specifications.ts
-      05-products.ts
-      06-skus.ts
-      07-images.ts
-      08-spec-values.ts
-      09-prices.ts
-      10-stock.ts
-      11-collections.ts
+      01-products.ts
+      02-skus.ts
+      03-spec-values.ts
+  i18n/
+    index.ts                # t(), setLang, resolveLang
+    locales/{pt,es,en}.ts   # diccionarios tipados (MessageKey)
   ui/
+    dashboard.ts            # dashboard multi-barra estilo Docker pull
     logger.ts               # logging de eventos
     progress.ts             # actualización del spinner
 .github/
@@ -87,7 +84,8 @@ src/
 - Todo texto visible al usuario (README, templates, docs) en **español**
 - Commits en inglés con prefijo convencional: `feat:`, `fix:`, `chore:`, etc.
 - No mockear dependencias externas en tests — usar clientes reales o stubs mínimos
-- El `IdMap` es central: cada paso debe registrar el mapeo `origenId → destinoId` para que los pasos siguientes puedan referenciar correctamente
+- El preflight de `init` debe usar un endpoint con los mismos permisos que la Descoberta (`getSkuIds`) — no `getBrands` — para detectar AppKeys con rol limitado antes del Dashboard.
+- Conflictos HTTP 409 en POST de `product`/`stockkeepingunit` caen automáticamente a PUT vía `upsertProduct`/`upsertSku`.
 
 ## Publicar una nueva versión
 

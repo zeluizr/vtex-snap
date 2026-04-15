@@ -1,5 +1,62 @@
 # Changelog
 
+## v2.9.1 — 2026-04-15
+
+### Preflight alineado al endpoint real
+
+El chequeo de credenciales al inicio de `vtex-snap init` usaba `GET /api/catalog_system/pvt/brand/list` (`getBrands`), endpoint que requiere solo permiso de lectura de marcas. La fase de **Descubrimiento** inmediatamente posterior usa `GET /api/catalog_system/pvt/sku/stockkeepingunitids` (`getSkuIds`), que exige permisos de Catálogo (Products & SKU). Resultado: AppKeys con rol limitado pasaban el preflight y fallaban con un `HTTP 401 Unauthorized` ya dentro del Dashboard.
+
+- `src/commands/init.ts`: preflight de source y target ahora llama `getSkuIds(1, 1)` — misma permiso que la Descoberta, costo mínimo (una sola página de tamaño 1).
+- El error de credenciales insuficientes se detecta antes del Dashboard y se muestra con el formato estándar `✗ Erro na loja origem/destino: …`.
+
+### Mensaje de confirmación limpio
+
+El prompt `start.confirmAll` mostraba `(3 etapas + descoberta, conflitos viram PUT)` — ruido técnico innecesario. Removido en los tres locales:
+
+- `src/i18n/locales/pt.ts` → `Clonar tudo de {source} → {target}?`
+- `src/i18n/locales/es.ts` → `¿Clonar todo de {source} → {target}?`
+- `src/i18n/locales/en.ts` → `Clone everything from {source} → {target}?`
+
+---
+
+## v2.9.0 — 2026-04-15
+
+### Reorganización de comandos + multi-account
+
+Comandos refactorizados para separar **gestión de credenciales** de **ejecución**:
+
+| Comando | Antes | Ahora |
+|---------|-------|-------|
+| `vtex-snap init` | Configura un par fijo source/target | **Inicia la clonación** (onboarding inline si falta config) |
+| `vtex-snap config` | (no existía) | **Agrega un perfil** de tienda (account + appKey + appToken) |
+| `vtex-snap start` | Ejecutaba la clonación | **Removido** (su rol pasó a `init`) |
+| `vtex-snap help` | (genérico) | Igual — built-in de commander |
+
+### Múltiples perfiles
+
+La config ahora guarda una **lista de perfiles** (`profiles[]`) en `~/.config/vtex-snap/config.json`:
+
+```json
+{
+  "lang": "pt",
+  "profiles": [
+    { "accountName": "tiendatest1", "appKey": "...", "appToken": "...", "sellerId": "1" },
+    { "accountName": "commente",    "appKey": "...", "appToken": "...", "sellerId": "1" }
+  ]
+}
+```
+
+- `vtex-snap config` añade/sobrescribe un perfil identificado por `accountName`.
+- `vtex-snap init` muestra dos `select` para elegir source y target (target excluye el source elegido).
+- Si hay menos de 2 perfiles, el `init` ofrece añadirlos inline antes de seguir.
+- Si no hay idioma persistido, el `init` también pregunta el idioma una vez (y guarda).
+
+### Ruptura de configuración
+
+El nuevo shape es **incompatible** con la config anterior (`{ source, target }`). Se recomienda eliminar `~/.config/vtex-snap/config.json` y volver a correr `vtex-snap config` por cada tienda.
+
+---
+
 ## v2.8.0 — 2026-04-15
 
 ### Dashboard multi-barra (estilo Docker pull)

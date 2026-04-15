@@ -80,5 +80,21 @@ export const pt: Record<MessageKey, string> = {
   'progress.eta': 'eta {time}',
   'progress.cancelHint': 'pressione q ou Esc para cancelar',
   'progress.cancelled': 'Cancelado pelo usuário.',
-  'start.confirmAll': 'Clonar tudo de {source} → {target}? (3 etapas + descoberta, conflitos viram PUT)',
+  'start.confirmAll': 'Clonar tudo de {source} → {target}?',
+
+  // config command
+  'config.intro': 'VTEX Catalog Cloner — Adicionar perfil',
+  'config.outro': 'Perfil {name} salvo. Use {cmd} para iniciar a clonagem.',
+  'config.testFailed': 'Validação falhou: {msg}. Salvar mesmo assim?',
+  'config.testing': 'Testando credenciais...',
+  'config.ok': '✓ Credenciais válidas',
+  'config.saved': 'Perfil salvo em {path}',
+
+  // init runner
+  'init.run.intro': 'VTEX Catalog Cloner',
+  'init.run.needMore': 'Você tem {count} perfil(is). É necessário pelo menos 2 (origem + destino).',
+  'init.run.addNow': 'Adicionar um perfil agora?',
+  'init.run.useConfig': 'Use {cmd} para adicionar perfis.',
+  'init.run.pickSource': 'Loja de origem',
+  'init.run.pickTarget': 'Loja de destino',
 }

@@ -41,23 +41,36 @@ pnpm add -g vtex-snap
 
 ## Uso
 
-### 1. Configurar credenciales
+### 1. Agregar un perfil de tienda
+
+```bash
+vtex-snap config
+```
+
+Solicita `accountName`, `appKey`, `appToken` y `sellerId` y valida con un GET liviano a `/pvt/brand/list`. Repite el comando para cada tienda (origen, destino, sandboxes…). Los perfiles quedan guardados en `~/.config/vtex-snap/config.json`.
+
+> **Nota sobre permisos del AppKey.** El preflight de `vtex-snap init` valida con `/pvt/sku/stockkeepingunitids` — el mismo endpoint que usa la fase de Descubrimiento. Si el AppKey no tiene permiso de lectura de Catálogo (Products & SKU), el init aborta antes de entrar al Dashboard con un error claro.
+
+### 2. Iniciar la clonación
 
 ```bash
 vtex-snap init
 ```
 
-Solicita las credenciales de las tiendas de origen y destino (account name + app key/token).
+- Si aún no hay perfiles, te guía a crearlos inline.
+- Si hay 2 o más, elige source y target en dos `select`.
+- Confirma y muestra un dashboard tipo Docker pull con el progreso de cada etapa (Discovery / Products / SKUs / Spec Values).
+- Cancela en cualquier momento con `q`, `Esc` o `Ctrl+C`.
 
-### 2. Iniciar clonación
+La clonación es **total y automática**: una fase inicial de descubrimiento pagina todos los SKU IDs de la tienda origen (`/pvt/sku/stockkeepingunitids`) y cachea el contexto de cada uno. Conflictos (HTTP 409) se reciclan automáticamente como `PUT` (update).
+
+### 3. Ayuda
 
 ```bash
-vtex-snap start
+vtex-snap help
+vtex-snap help init
+vtex-snap help config
 ```
-
-Seleccione todos los pasos o elija pasos específicos. La clonación es **total y automática**: una fase inicial de descubrimiento pagina todos los SKU IDs de la tienda origen (`/pvt/sku/stockkeepingunitids`) y cachea el contexto de cada uno — sin prompts de rango, sin llamadas desperdiciadas en IDs vacíos.
-
-`vtex-snap` validará la conectividad antes de comenzar.
 
 ---
 
